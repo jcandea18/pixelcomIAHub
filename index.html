@@ -83,33 +83,8 @@
     background: var(--accent-light);
   }
 
-  /* API key bar */
-  .api-bar {
-    background: var(--warn-light);
-    border-bottom: 1px solid rgba(180,83,9,0.18);
-    padding: 10px 32px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .api-bar label { font-size: 12px; font-weight: 500; color: var(--warn); white-space: nowrap; }
-  .api-bar input {
-    flex: 1;
-    max-width: 420px;
-    font-size: 12px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    padding: 6px 10px;
-    border: 1px solid rgba(180,83,9,0.28);
-    border-radius: 6px;
-    background: #fff;
-    color: var(--text);
-    outline: none;
-  }
-  .api-bar input:focus { border-color: var(--warn); }
-  .api-bar .hint { font-size: 11px; color: var(--warn); opacity: 0.8; }
-
   /* Layout */
-  .layout { display: flex; min-height: calc(100vh - 56px); }
+  .layout { display: flex; min-height: calc(100vh - 64px); }
 
   /* Sidebar */
   .sidebar {
@@ -383,18 +358,6 @@
     .form-grid.cols-3 { grid-template-columns: 1fr 1fr; }
     .main { padding: 20px; }
     .stats-row { flex-wrap: wrap; }
-  }
-
-  .api-bar { flex-wrap: wrap; }
-  .api-bar .lang-label { font-size: 12px; font-weight: 500; color: var(--warn); white-space: nowrap; }
-  .api-bar select.lang-select {
-    font-size: 12px;
-    padding: 6px 10px;
-    border: 1px solid rgba(180,83,9,0.28);
-    border-radius: 6px;
-    background: #fff;
-    color: var(--text);
-    min-width: 160px;
   }
 
   .output-header-row { margin-bottom: 10px; }
@@ -928,7 +891,8 @@ function OutputBlock({ result, loading, error, variant = 'article' }) {
 // ══════════════════════════════════════════════════════════════
 // MÓDULO 1 — Email de primer contacto (HTML + webhook)
 // ══════════════════════════════════════════════════════════════
-function Module1({ apiKey, outputLanguage }) {
+function Module1({ apiKey }) {
+  const [outputLanguage, setOutputLanguage] = useState('frances');
   const [form, setForm] = useState({
     nombre: '', empresa: '', emailProspecto: '', pais: 'Francia', tipo: 'nueva_instalacion',
     producto: 'pixeltiming', contexto: ''
@@ -1019,7 +983,7 @@ Reglas:
       <div className="module-header">
         <div className="module-tag">CASO DE USO 1 · COMERCIAL</div>
         <div className="module-title">Email de primer contacto</div>
-        <div className="module-desc">Genera el correo en el idioma elegido en la barra superior, previsualízalo como HTML real y envíalo a tu automatización mediante webhook (URL configurada en el servidor como WEBHOOK_URL).</div>
+        <div className="module-desc">Elige el idioma de salida en el formulario, previsualiza el correo como HTML y envíalo a tu automatización mediante webhook (<code style={{fontSize:12}}>WEBHOOK_URL</code> en el servidor).</div>
       </div>
 
       <div className="stats-row">
@@ -1034,15 +998,23 @@ Reglas:
           <div className="stat-sub">revisión + envío</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Idioma de salida</div>
-          <div className="stat-value">{langLabel}</div>
-          <div className="stat-sub">selector global arriba</div>
+          <div className="stat-label">Mercado objetivo</div>
+          <div className="stat-value">160k€</div>
+          <div className="stat-sub">referencia Francia</div>
         </div>
       </div>
 
       <div className="card">
         <div className="card-title">Datos del prospecto</div>
         <div className="form-grid">
+          <div className="field" style={{gridColumn:'span 2'}}>
+            <label>Idioma de salida del correo</label>
+            <select value={outputLanguage} onChange={(e) => setOutputLanguage(e.target.value)}>
+              {OUTPUT_LANGS.map((l) => (
+                <option key={l.value} value={l.value}>{l.label}</option>
+              ))}
+            </select>
+          </div>
           <div className="field">
             <label>Nombre del contacto *</label>
             <input value={form.nombre} onChange={e=>set('nombre',e.target.value)} placeholder="Jean-Pierre Moreau" />
@@ -1109,7 +1081,8 @@ Reglas:
 // ══════════════════════════════════════════════════════════════
 // MÓDULO 2 — Generador de contenidos SEO
 // ══════════════════════════════════════════════════════════════
-function Module2({ apiKey, outputLanguage }) {
+function Module2({ apiKey }) {
+  const [outputLanguage, setOutputLanguage] = useState('frances');
   const [form, setForm] = useState({
     tema: '', linea: 'pixeltiming',
     tipo: 'articulo_blog', keywords: '', publico: 'propietario_karting'
@@ -1173,7 +1146,7 @@ Entrega el resultado ÚNICAMENTE como fragmento HTML (sin markdown, sin bloques 
       <div className="module-header">
         <div className="module-tag">CASO DE USO 3 · CONTENIDOS</div>
         <div className="module-title">Generador de contenidos SEO</div>
-        <div className="module-desc">Produce artículos, descripciones de producto y FAQs optimizados para posicionamiento en el idioma elegido arriba. Vista previa en HTML. Multiplica el volumen de contenidos sin aumentar el equipo.</div>
+        <div className="module-desc">Produce artículos, descripciones de producto y FAQs en el idioma que elijas abajo. Vista previa en HTML.</div>
       </div>
 
       <div className="stats-row">
@@ -1200,6 +1173,14 @@ Entrega el resultado ÚNICAMENTE como fragmento HTML (sin markdown, sin bloques 
           <div className="field" style={{gridColumn:'span 2'}}>
             <label>Tema o título del contenido *</label>
             <input value={form.tema} onChange={e=>set('tema',e.target.value)} placeholder="Cómo elegir el sistema de cronometraje para tu karting en 2025" />
+          </div>
+          <div className="field">
+            <label>Idioma de salida</label>
+            <select value={outputLanguage} onChange={(e) => setOutputLanguage(e.target.value)}>
+              {OUTPUT_LANGS.map((l) => (
+                <option key={l.value} value={l.value}>{l.label}</option>
+              ))}
+            </select>
           </div>
           <div className="field">
             <label>Tipo de contenido</label>
@@ -1240,7 +1221,8 @@ Entrega el resultado ÚNICAMENTE como fragmento HTML (sin markdown, sin bloques 
 // ══════════════════════════════════════════════════════════════
 // MÓDULO 3 — Newsletter segmentada
 // ══════════════════════════════════════════════════════════════
-function Module3({ apiKey, outputLanguage }) {
+function Module3({ apiKey }) {
+  const [outputLanguage, setOutputLanguage] = useState('frances');
   const [segmentos, setSegmentos] = useState(['timing_fr']);
   const [temas, setTemas] = useState('');
   const [novedad, setNovedad] = useState('');
@@ -1310,7 +1292,7 @@ Entrega el resultado ÚNICAMENTE como fragmento HTML (sin markdown, sin bloques 
       <div className="module-header">
         <div className="module-tag">CASO DE USO 3 · NEWSLETTER</div>
         <div className="module-title">Newsletter segmentada</div>
-        <div className="module-desc">Genera newsletters en el idioma elegido arriba, con vista previa HTML, adaptadas al perfil de cada segmento.</div>
+        <div className="module-desc">Elige el idioma de salida en el bloque de contenido. Vista previa HTML por segmento.</div>
       </div>
 
       <div className="stats-row">
@@ -1357,11 +1339,19 @@ Entrega el resultado ÚNICAMENTE como fragmento HTML (sin markdown, sin bloques 
               placeholder="Nueva funcionalidad de control remoto de karts desde app móvil" />
           </div>
         </div>
-        <div className="form-grid cols-1" style={{marginTop:14}}>
+        <div className="form-grid" style={{marginTop:14}}>
           <div className="field">
             <label>Llamada a la acción principal</label>
             <select value={cta} onChange={e=>setCta(e.target.value)}>
               {ctas.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label>Idioma de salida</label>
+            <select value={outputLanguage} onChange={(e) => setOutputLanguage(e.target.value)}>
+              {OUTPUT_LANGS.map((l) => (
+                <option key={l.value} value={l.value}>{l.label}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -1854,7 +1844,6 @@ const MODULES = [
 
 function App() {
   const [active, setActive] = useState('email');
-  const [outputLanguage, setOutputLanguage] = useState('frances');
   const apiKey = 'server';
 
   const groups = [...new Set(MODULES.map(m => m.group))];
@@ -1871,21 +1860,6 @@ function App() {
           <div className="product">AI Hub</div>
         </div>
         <div className="header-badge">MVP v1.0</div>
-      </div>
-
-      <div className="api-bar">
-        <label>API Anthropic</label>
-        <span className="hint">`ANTHROPIC_API_KEY` · Webhook correo: `WEBHOOK_URL` (+ opcional `WEBHOOK_SECRET`)</span>
-        <label className="lang-label" style={{marginLeft:'auto'}}>Idioma de salida</label>
-        <select
-          className="lang-select"
-          value={outputLanguage}
-          onChange={(e) => setOutputLanguage(e.target.value)}
-        >
-          {OUTPUT_LANGS.map((l) => (
-            <option key={l.value} value={l.value}>{l.label}</option>
-          ))}
-        </select>
       </div>
 
       <div className="layout">
@@ -1915,10 +1889,10 @@ function App() {
         </div>
 
         <div className="main">
-          {active === 'email' && <Module1 apiKey={apiKey} outputLanguage={outputLanguage} />}
+          {active === 'email' && <Module1 apiKey={apiKey} />}
           {active === 'scoring' && <Module4 />}
-          {active === 'contenidos' && <Module2 apiKey={apiKey} outputLanguage={outputLanguage} />}
-          {active === 'newsletter' && <Module3 apiKey={apiKey} outputLanguage={outputLanguage} />}
+          {active === 'contenidos' && <Module2 apiKey={apiKey} />}
+          {active === 'newsletter' && <Module3 apiKey={apiKey} />}
         </div>
       </div>
     </div>
