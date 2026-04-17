@@ -1,0 +1,38 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/claude"
+  to = "/.netlify/functions/claude"
+  status = 200
+  force = true
+  methods = ["POST", "OPTIONS"]
+
+[[redirects]]
+  from = "/api/webhook-email"
+  to = "/.netlify/functions/webhook-email"
+  status = 200
+  force = true
+  methods = ["POST", "OPTIONS"]
+
+[[redirects]]
+  from = "/api/lead-score"
+  to = "/.netlify/functions/lead-score"
+  status = 200
+  force = true
+  methods = ["POST", "OPTIONS"]
+
+[[redirects]]
+  from = "/api/leads"
+  to = "/.netlify/functions/leads"
+  status = 200
+  force = true
+  methods = ["GET", "POST", "DELETE", "OPTIONS"]
+
+[[redirects]]
+  from = "/api/log"
+  to = "/.netlify/functions/log"
+  status = 200
+  force = true
+  methods = ["POST", "OPTIONS"]
