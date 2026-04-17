@@ -21,3 +21,17 @@ CREATE TABLE IF NOT EXISTS app_events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_app_events_created ON app_events (created_at DESC);
+
+-- Newsletters, emails de prospecto y contenidos SEO generados desde la app
+CREATE TABLE IF NOT EXISTS generated_contents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  kind TEXT NOT NULL CHECK (kind IN ('newsletter', 'prospect_email', 'seo')),
+  output_language TEXT,
+  input_json JSONB NOT NULL,
+  body_html TEXT NOT NULL,
+  body_plain TEXT,
+  subject TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_generated_kind_created ON generated_contents (kind, created_at DESC);

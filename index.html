@@ -773,6 +773,15 @@ function logActivity(module, action, meta) {
   }).catch(() => {});
 }
 
+/** Guarda newsletter, email de prospecto o SEO en Neon (ignora errores si no hay DB). */
+function persistGenerated(payload) {
+  fetch('/api/generated', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
+}
+
 // ── Copy button ────────────────────────────────────────────────
 function CopyBtn({ text }) {
   const [copied, setCopied] = useState(false);
@@ -948,6 +957,17 @@ Reglas:
       const text = await callClaude(apiKey, system, user);
       setResult(text);
       logActivity('email', 'generate', { empresa: form.empresa, outputLanguage });
+      const parsed = parseEmailJson(text);
+      if (parsed) {
+        persistGenerated({
+          kind: 'prospect_email',
+          outputLanguage,
+          input: { ...form },
+          bodyHtml: parsed.html,
+          bodyPlain: parsed.text,
+          subject: parsed.subject
+        });
+      }
     } catch(e) { setError(e.message); }
     setLoading(false);
   };
@@ -1137,6 +1157,12 @@ Entrega el resultado ÚNICAMENTE como fragmento HTML (sin markdown, sin bloques 
       const text = await callClaude(apiKey, system, user);
       setResult(text);
       logActivity('contenidos', 'generate', { tema: form.tema, outputLanguage });
+      persistGenerated({
+        kind: 'seo',
+        outputLanguage,
+        input: { ...form },
+        bodyHtml: text
+      });
     } catch(e) { setError(e.message); }
     setLoading(false);
   };
@@ -1283,6 +1309,12 @@ Entrega el resultado ÚNICAMENTE como fragmento HTML (sin markdown, sin bloques 
       const text = await callClaude(apiKey, system, user);
       setResult(text);
       logActivity('newsletter', 'generate', { segmentos, outputLanguage });
+      persistGenerated({
+        kind: 'newsletter',
+        outputLanguage,
+        input: { segmentos, temas, novedad, cta },
+        bodyHtml: text
+      });
     } catch(e) { setError(e.message); }
     setLoading(false);
   };

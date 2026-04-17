@@ -13,6 +13,10 @@ import {
   deletePipelineLead
 } from './lib/pipelineRepo.js';
 import { insertAppEvent } from './lib/eventsRepo.js';
+import {
+  insertGenerated,
+  listGenerated
+} from './lib/generatedRepo.js';
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
@@ -279,6 +283,77 @@ app.post('/api/log', async (req, res) => {
       return res.status(503).json({
         error: { message: 'Base de datos no configurada (DATABASE_URL).' }
       });
+    }
+    return res.status(500).json({ error: { message: e.message } });
+  }
+});
+
+app.get('/api/generated', async (req, res) => {
+  try {
+    const kind = req.query?.kind;
+    const limit = req.query?.limit;
+    const items = await listGenerated({
+      kind: typeof kind === 'string' ? kind : undefined,
+      limit: limit != null ? Number(limit) : undefined
+    });
+    return res.json({ items });
+  } catch (e) {
+    if (e.message === 'NO_DATABASE_URL') {
+      return res.status(503).json({
+        error: { message: 'Base de datos no configurada (DATABASE_URL).' }
+      });
+    }
+    if (e.message === 'INVALID_KIND') {
+      return res.status(400).json({ error: { message: 'kind no válido.' } });
+    }
+    return res.status(500).json({ error: { message: e.message } });
+  }
+});
+
+app.post('/api/generated', async (req, res) => {
+  try {
+    const body = req.body ?? {};
+    const {
+      kind,
+      outputLanguage,
+      input,
+      bodyHtml,
+      bodyPlain,
+      subject
+    } = body;
+    if (!kind || !input || !bodyHtml) {
+      return res.status(400).json({
+        error: {
+          message: 'kind, input y bodyHtml son obligatorios.'
+        }
+      });
+    }
+    const entry = await insertGenerated({
+      kind: String(kind),
+      outputLanguage:
+        outputLanguage != null ? String(outputLanguage) : null,
+      input,
+      bodyHtml: String(bodyHtml),
+      bodyPlain: bodyPlain != null ? String(bodyPlain) : null,
+      subject: subject != null ? String(subject) : null
+    });
+    return res.json({ entry });
+  } catch (e) {
+    if (e.message === 'NO_DATABASE_URL') {
+      return res.status(503).json({
+        error: { message: 'Base de datos no configurada (DATABASE_URL).' }
+      });
+    }
+    if (e.message === 'INVALID_KIND') {
+      return res.status(400).json({
+        error: {
+          message:
+            'kind debe ser newsletter, prospect_email o seo.'
+        }
+      });
+    }
+    if (e.message === 'INVALID_INPUT' || e.message === 'INVALID_BODY') {
+      return res.status(400).json({ error: { message: 'Datos incompletos.' } });
     }
     return res.status(500).json({ error: { message: e.message } });
   }
