@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixelcom · Marketing AI Hub</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F9FC;
+    --surface: #FFFFFF;
+    --surface2: #F1F5F9;
+    --border: #E2E8F0;
+    --border-strong: #CBD5E1;
+    --text: #0F172A;
+    --text-muted: #475569;
+    --text-faint: #94A3B8;
+    --accent: #D4141D;         /* Pixelcom red-ish */
+    --accent-light: #FDECEC;   /* soft red tint */
+    --accent-dark: #A30F15;
+    --warn: #B45309;
+    --warn-light: #FFF7ED;
+    --radius: 12px;
+    --radius-lg: 18px;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Header */
+  .header {
+    background: var(--surface);
+    padding: 0 32px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--border);
+    border-top: 6px solid var(--accent);
+  }
+  .header-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header-logo img {
+    height: 24px;
+    width: auto;
+    display: block;
+  }
+  .header-logo .product {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: var(--text-muted);
+    border-left: 1px solid var(--border);
+    padding-left: 10px;
+  }
+  .header-badge {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    border: 1px solid rgba(212,20,29,0.28);
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    background: var(--accent-light);
+  }
+
+  /* API key bar */
+  .api-bar {
+    background: var(--warn-light);
+    border-bottom: 1px solid rgba(180,83,9,0.18);
+    padding: 10px 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .api-bar label { font-size: 12px; font-weight: 500; color: var(--warn); white-space: nowrap; }
+  .api-bar input {
+    flex: 1;
+    max-width: 420px;
+    font-size: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    padding: 6px 10px;
+    border: 1px solid rgba(180,83,9,0.28);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--text);
+    outline: none;
+  }
+  .api-bar input:focus { border-color: var(--warn); }
+  .api-bar .hint { font-size: 11px; color: var(--warn); opacity: 0.8; }
+
+  /* Layout */
+  .layout { display: flex; min-height: calc(100vh - 56px); }
+
+  /* Sidebar */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--surface);
+    padding: 18px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-right: 1px solid var(--border);
+  }
+  .sidebar-section {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1.2px;
+    color: var(--text-faint);
+    padding: 0 20px;
+    margin: 16px 0 8px;
+  }
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    border-left: 3px solid transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 400;
+    user-select: none;
+  }
+  .sidebar-item:hover { background: #F8FAFC; color: var(--text); }
+  .sidebar-item.active {
+    background: var(--accent-light);
+    border-left-color: var(--accent);
+    color: var(--accent-dark);
+    font-weight: 600;
+  }
+  .sidebar-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  /* Main */
+  .main { flex: 1; padding: 32px 40px; overflow-y: auto; max-width: 900px; }
+
+  /* Module header */
+  .module-header { margin-bottom: 28px; }
+  .module-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.8px;
+    color: var(--accent);
+    background: var(--accent-light);
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+  }
+  .module-title {
+    font-size: 30px;
+    line-height: 1.2;
+    color: var(--text);
+    margin-bottom: 8px;
+    font-weight: 600;
+    letter-spacing: -0.4px;
+  }
+  .module-desc { font-size: 14px; color: var(--text-muted); line-height: 1.7; max-width: 620px; }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+
+  /* Form */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-grid.cols-1 { grid-template-columns: 1fr; }
+  .form-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+  .field input, .field select, .field textarea {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 9px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--accent);
+    background: #fff;
+  }
+  .field textarea { resize: vertical; min-height: 80px; }
+
+  /* Buttons */
+  .btn {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+  }
+  .btn-secondary:hover { background: var(--border); }
+
+  /* Output */
+  .output-card {
+    background: linear-gradient(180deg, #111827 0%, #0B1220 100%);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-top: 20px;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .output-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    color: #FF6B6B;
+    margin-bottom: 14px;
+  }
+  .output-text {
+    font-size: 13px;
+    color: #E8E6E0;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .output-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .btn-copy {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    color: #B4B2A9;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-copy:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  .btn-copy.copied { color: #5DCAA5; border-color: #5DCAA5; }
+
+  /* Loading */
+  .loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #FF6B6B;
+    font-size: 13px;
+    padding: 20px 0;
+  }
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,107,107,0.22);
+    border-top-color: #FF6B6B;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Stats row */
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+  }
+  .stat-label { font-size: 11px; color: var(--text-faint); margin-bottom: 4px; }
+  .stat-value { font-size: 22px; font-weight: 500; color: var(--text); }
+  .stat-sub { font-size: 11px; color: var(--accent); margin-top: 2px; }
+
+  /* Segment pills */
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .pill {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border-strong);
+    cursor: pointer;
+    transition: all 0.12s;
+    background: var(--bg);
+    color: var(--text-muted);
+    user-select: none;
+  }
+  .pill.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 500;
+  }
+  .pill:hover:not(.selected) { border-color: var(--accent); color: var(--accent); }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* History */
+  .history-item {
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.12s;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .history-item:hover { background: var(--border); }
+  .history-preview { font-size: 12px; color: var(--text-muted); line-height: 1.5; flex: 1; }
+  .history-meta { font-size: 11px; color: var(--text-faint); white-space: nowrap; }
+
+  /* Responsive tweak */
+  @media (max-width: 700px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid.cols-3 { grid-template-columns: 1fr 1fr; }
+    .main { padding: 20px; }
+    .stats-row { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useCallback, useRef } = React;
+
+// ── Anthropic API call ──────────────────────────────────────────
+async function callClaude(apiKey, systemPrompt, userPrompt) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Error ${res.status}`);
+  }
+  const data = await res.json();
+  return data.content[0]?.text || '';
+}
+
+// ── Copy button ────────────────────────────────────────────────
+function CopyBtn({ text }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <button className={`btn-copy ${copied ? 'copied' : ''}`} onClick={copy}>
+      {copied ? '✓ Copiado' : 'Copiar texto'}
+    </button>
+  );
+}
+
+// ── Output block ───────────────────────────────────────────────
+function OutputBlock({ result, loading, error }) {
+  if (loading) return (
+    <div className="output-card">
+      <div className="loading">
+        <div className="spinner" />
+        Generando con IA...
+      </div>
+    </div>
+  );
+  if (error) return (
+    <div className="output-card" style={{borderLeft:'3px solid #E24B4A'}}>
+      <div className="output-label" style={{color:'#E24B4A'}}>ERROR</div>
+      <div className="output-text" style={{color:'#F09595'}}>{error}</div>
+    </div>
+  );
+  if (!result) return null;
+  return (
+    <div className="output-card">
+      <div className="output-label">RESULTADO GENERADO</div>
+      <div className="output-text">{result}</div>
+      <div className="output-actions">
+        <CopyBtn text={result} />
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO 1 — Email de primer contacto en francés
+// ══════════════════════════════════════════════════════════════
+function Module1({ apiKey }) {
+  const [form, setForm] = useState({
+    nombre: '', empresa: '', pais: 'Francia', tipo: 'nueva_instalacion',
+    producto: 'pixeltiming', contexto: ''
+  });
+  const [result, setResult] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const tiposInstalacion = [
+    { value: 'nueva_instalacion', label: 'Nueva apertura de karting' },
+    { value: 'renovacion', label: 'Renovación de instalación existente' },
+    { value: 'circuito_velocidad', label: 'Circuito de velocidad' },
+    { value: 'consultor', label: 'Consultor / proyectista de circuitos' },
+  ];
+  const productos = [
+    { value: 'pixeltiming', label: 'Pixeltiming — sistemas karting' },
+    { value: 'pixelmotorsport', label: 'Pixelmotorsport — señalización velocidad' },
+    { value: 'ambos', label: 'Ambas líneas' },
+  ];
+
+  const generate = async () => {
+    if (!apiKey) { setError('Introduce tu API key de Anthropic en la barra superior.'); return; }
+    if (!form.nombre || !form.empresa) { setError('Nombre y empresa son obligatorios.'); return; }
+    setLoading(true); setError(''); setResult('');
+    const system = `Eres el asistente comercial de Pixelcom Ingeniería, empresa española especializada en sistemas de cronometraje y señalización para karting y circuitos de velocidad (marcas Pixeltiming y Pixelmotorsport). Redactas emails profesionales en FRANCÉS para el mercado francés. El tono es cercano pero técnico, confiado, breve y orientado a resultados. Nunca uses plantillas genéricas. Firma siempre como "L'équipe commerciale Pixelcom · www.pixelcom.es".`;
+    const user = `Redacta un email de primer contacto en francés para:
+- Nombre contacto: ${form.nombre}
+- Empresa: ${form.empresa}
+- País: ${form.pais}
+- Tipo de instalación / perfil: ${tiposInstalacion.find(t=>t.value===form.tipo)?.label}
+- Producto de interés: ${productos.find(p=>p.value===form.producto)?.label}
+- Contexto adicional: ${form.contexto || 'ninguno'}
+
+El email debe: presentar brevemente Pixelcom, destacar el modelo All-in-One como diferencial, hacer una pregunta de apertura relevante para su perfil específico y proponer una llamada o demo. Máximo 180 palabras.`;
+    try {
+      const text = await callClaude(apiKey, system, user);
+      setResult(text);
+    } catch(e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <div className="module-header">
+        <div className="module-tag">CASO DE USO 1 · COMERCIAL</div>
+        <div className="module-title">Email de contacto en francés</div>
+        <div className="module-desc">Genera automáticamente el email de primer contacto personalizado para prospectos del mercado francés. En menos de 30 segundos, listo para revisar y enviar.</div>
+      </div>
+
+      <div className="stats-row">
+        <div className="stat-card">
+          <div className="stat-label">Tiempo manual actual</div>
+          <div className="stat-value">15-20 min</div>
+          <div className="stat-sub">por email en francés</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Tiempo con IA</div>
+          <div className="stat-value">&lt;2 min</div>
+          <div className="stat-sub">revisión + envío</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Mercado objetivo</div>
+          <div className="stat-value">160k€</div>
+          <div className="stat-sub">objetivo Francia</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Datos del prospecto</div>
+        <div className="form-grid">
+          <div className="field">
+            <label>Nombre del contacto *</label>
+            <input value={form.nombre} onChange={e=>set('nombre',e.target.value)} placeholder="Jean-Pierre Moreau" />
+          </div>
+          <div className="field">
+            <label>Empresa *</label>
+            <input value={form.empresa} onChange={e=>set('empresa',e.target.value)} placeholder="Karting de Lyon" />
+          </div>
+          <div className="field">
+            <label>País</label>
+            <select value={form.pais} onChange={e=>set('pais',e.target.value)}>
+              <option>Francia</option>
+              <option>Bélgica</option>
+              <option>Suiza</option>
+              <option>Luxemburgo</option>
+              <option>Reino Unido</option>
+              <option>Estados Unidos</option>
+            </select>
+          </div>
+          <div className="field">
+            <label>Perfil / tipo de instalación</label>
+            <select value={form.tipo} onChange={e=>set('tipo',e.target.value)}>
+              {tiposInstalacion.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label>Producto de interés</label>
+            <select value={form.producto} onChange={e=>set('producto',e.target.value)}>
+              {productos.map(p=><option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label>Contexto adicional (opcional)</label>
+            <input value={form.contexto} onChange={e=>set('contexto',e.target.value)} placeholder="Lo conocimos en feria Offenbach..." />
+          </div>
+        </div>
+      </div>
+
+      <button className="btn btn-primary" onClick={generate} disabled={loading}>
+        {loading ? 'Generando...' : 'Generar email en francés'}
+      </button>
+
+      <OutputBlock result={result} loading={loading} error={error} />
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO 2 — Generador de contenidos SEO
+// ══════════════════════════════════════════════════════════════
+function Module2({ apiKey }) {
+  const [form, setForm] = useState({
+    tema: '', linea: 'pixeltiming', idioma: 'frances',
+    tipo: 'articulo_blog', keywords: '', publico: 'propietario_karting'
+  });
+  const [result, setResult] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const tipos = [
+    { value: 'articulo_blog', label: 'Artículo de blog (800-1000 palabras)' },
+    { value: 'descripcion_producto', label: 'Descripción de producto para web' },
+    { value: 'faq', label: 'Página FAQ técnica' },
+    { value: 'caso_exito', label: 'Caso de éxito de cliente' },
+  ];
+  const publicos = [
+    { value: 'propietario_karting', label: 'Propietario de karting' },
+    { value: 'gestor_circuito', label: 'Gestor de circuito de velocidad' },
+    { value: 'consultor', label: 'Consultor / proyectista' },
+    { value: 'administracion', label: 'Administración pública' },
+  ];
+  const idiomas = [
+    { value: 'frances', label: 'Francés' },
+    { value: 'ingles', label: 'Inglés' },
+    { value: 'espanol', label: 'Español' },
+  ];
+
+  const generate = async () => {
+    if (!apiKey) { setError('Introduce tu API key de Anthropic en la barra superior.'); return; }
+    if (!form.tema) { setError('El tema es obligatorio.'); return; }
+    setLoading(true); setError(''); setResult('');
+
+    const idiomaLabel = idiomas.find(i=>i.value===form.idioma)?.label;
+    const system = `Eres experto en marketing de contenidos B2B para el sector de tecnología deportiva. Trabajas para Pixelcom Ingeniería, empresa española líder en sistemas de cronometraje para karting (Pixeltiming) y señalización para circuitos de velocidad (Pixelmotorsport). Redactas contenido en ${idiomaLabel} de alta calidad, optimizado para SEO, con tono técnico pero accesible. El diferencial de Pixelcom es su modelo All-in-One: hardware + software + soporte integrados, sin cuotas mensuales.`;
+
+    const tipoLabel = tipos.find(t=>t.value===form.tipo)?.label;
+    const publicoLabel = publicos.find(p=>p.value===form.publico)?.label;
+
+    const user = `Crea el siguiente contenido en ${idiomaLabel}:
+
+Tipo: ${tipoLabel}
+Tema / título sugerido: ${form.tema}
+Línea de producto: ${form.linea === 'pixeltiming' ? 'Pixeltiming (karting)' : form.linea === 'pixelmotorsport' ? 'Pixelmotorsport (circuitos velocidad)' : 'Ambas líneas'}
+Público objetivo: ${publicoLabel}
+Keywords a incluir: ${form.keywords || 'las más relevantes del sector'}
+
+Incluye:
+1. Título SEO optimizado (H1)
+2. Metadescripción (155 caracteres max)
+3. Cuerpo completo con subtítulos H2/H3
+4. Llamada a la acción al final
+
+Tono profesional, orientado a beneficios, con datos técnicos precisos cuando sea relevante.`;
+
+    try {
+      const text = await callClaude(apiKey, system, user);
+      setResult(text);
+    } catch(e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <div className="module-header">
+        <div className="module-tag">CASO DE USO 3 · CONTENIDOS</div>
+        <div className="module-title">Generador de contenidos SEO</div>
+        <div className="module-desc">Produce artículos, descripciones de producto y FAQs en francés, inglés o español optimizados para posicionamiento. Multiplica por 4 el volumen de contenidos publicados sin aumentar el equipo.</div>
+      </div>
+
+      <div className="stats-row">
+        <div className="stat-card">
+          <div className="stat-label">Contenidos FR actuales</div>
+          <div className="stat-value">~0</div>
+          <div className="stat-sub">por mes</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Objetivo con IA</div>
+          <div className="stat-value">8-16</div>
+          <div className="stat-sub">piezas por mes</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Tiempo por artículo</div>
+          <div className="stat-value">30 min</div>
+          <div className="stat-sub">vs. 4-6h manual</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Configuración del contenido</div>
+        <div className="form-grid">
+          <div className="field" style={{gridColumn:'span 2'}}>
+            <label>Tema o título del contenido *</label>
+            <input value={form.tema} onChange={e=>set('tema',e.target.value)} placeholder="Cómo elegir el sistema de cronometraje para tu karting en 2025" />
+          </div>
+          <div className="field">
+            <label>Tipo de contenido</label>
+            <select value={form.tipo} onChange={e=>set('tipo',e.target.value)}>
+              {tipos.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label>Idioma de salida</label>
+            <select value={form.idioma} onChange={e=>set('idioma',e.target.value)}>
+              {idiomas.map(i=><option key={i.value} value={i.value}>{i.label}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label>Línea de producto</label>
+            <select value={form.linea} onChange={e=>set('linea',e.target.value)}>
+              <option value="pixeltiming">Pixeltiming — karting</option>
+              <option value="pixelmotorsport">Pixelmotorsport — velocidad</option>
+              <option value="ambas">Ambas líneas</option>
+            </select>
+          </div>
+          <div className="field">
+            <label>Público objetivo</label>
+            <select value={form.publico} onChange={e=>set('publico',e.target.value)}>
+              {publicos.map(p=><option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
+          </div>
+          <div className="field" style={{gridColumn:'span 2'}}>
+            <label>Keywords SEO objetivo (opcional)</label>
+            <input value={form.keywords} onChange={e=>set('keywords',e.target.value)} placeholder="chronométrage karting, logiciel karting, système karting..." />
+          </div>
+        </div>
+      </div>
+
+      <button className="btn btn-primary" onClick={generate} disabled={loading}>
+        {loading ? 'Generando...' : 'Generar contenido'}
+      </button>
+
+      <OutputBlock result={result} loading={loading} error={error} />
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO 3 — Newsletter segmentada
+// ══════════════════════════════════════════════════════════════
+function Module3({ apiKey }) {
+  const [segmentos, setSegmentos] = useState(['timing_fr']);
+  const [temas, setTemas] = useState('');
+  const [novedad, setNovedad] = useState('');
+  const [cta, setCta] = useState('demo');
+  const [idioma, setIdioma] = useState('frances');
+  const [result, setResult] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const allSegmentos = [
+    { value: 'timing_fr', label: 'Clientes Pixeltiming — Francia', color: 'teal' },
+    { value: 'timing_eu', label: 'Clientes Pixeltiming — Europa', color: 'teal' },
+    { value: 'motorsport_eu', label: 'Clientes Pixelmotorsport — Europa', color: 'coral' },
+    { value: 'prospects_fr', label: 'Prospectos cualificados — Francia', color: 'amber' },
+    { value: 'prospects_en', label: 'Prospectos cualificados — Anglosajón', color: 'amber' },
+  ];
+
+  const toggleSeg = (v) => setSegmentos(s => s.includes(v) ? s.filter(x=>x!==v) : [...s,v]);
+
+  const ctas = [
+    { value: 'demo', label: 'Solicitar demostración' },
+    { value: 'llamada', label: 'Agendar llamada' },
+    { value: 'descarga', label: 'Descargar documentación' },
+    { value: 'feria', label: 'Visitarnos en feria' },
+  ];
+
+  const idiomas = [
+    { value: 'frances', label: 'Francés' },
+    { value: 'ingles', label: 'Inglés' },
+    { value: 'espanol', label: 'Español' },
+  ];
+
+  const generate = async () => {
+    if (!apiKey) { setError('Introduce tu API key de Anthropic en la barra superior.'); return; }
+    if (!temas) { setError('Describe los temas de la newsletter.'); return; }
+    if (segmentos.length === 0) { setError('Selecciona al menos un segmento.'); return; }
+    setLoading(true); setError(''); setResult('');
+
+    const segLabels = segmentos.map(s=>allSegmentos.find(a=>a.value===s)?.label).join(', ');
+    const ctaLabel = ctas.find(c=>c.value===cta)?.label;
+    const idiomaLabel = idiomas.find(i=>i.value===idioma)?.label;
+
+    const system = `Eres experto en email marketing B2B para Pixelcom Ingeniería, empresa española de tecnología deportiva (Pixeltiming para karting, Pixelmotorsport para circuitos de velocidad). Redactas newsletters profesionales en ${idiomaLabel} que mezclan novedades técnicas, noticias del sector y llamadas a la acción claras. Tono cercano, técnico y orientado a negocio. Nunca uses jerga de marketing genérica.`;
+
+    const user = `Redacta una newsletter mensual en ${idiomaLabel} para el siguiente segmento: ${segLabels}.
+
+Temas a incluir: ${temas}
+${novedad ? `Novedad de producto destacada: ${novedad}` : ''}
+Llamada a la acción principal: ${ctaLabel}
+
+Estructura:
+1. Asunto del email (2 opciones)
+2. Saludo personalizado
+3. Introducción (2-3 líneas)
+4. Sección 1: novedad o contenido principal
+5. Sección 2: noticia del sector o referencia de cliente
+6. Sección 3 (opcional): recurso útil o tip técnico
+7. Llamada a la acción clara
+8. Cierre y firma
+
+Longitud total: 250-350 palabras. Formato listo para copiar en herramienta de email marketing.`;
+
+    try {
+      const text = await callClaude(apiKey, system, user);
+      setResult(text);
+    } catch(e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <div className="module-header">
+        <div className="module-tag">CASO DE USO 3 · NEWSLETTER</div>
+        <div className="module-title">Newsletter segmentada</div>
+        <div className="module-desc">Genera newsletters mensuales en francés, inglés o español adaptadas al perfil de cada segmento de clientes. De cero a comunicación sistemática en minutos.</div>
+      </div>
+
+      <div className="stats-row">
+        <div className="stat-card">
+          <div className="stat-label">Newsletters actuales</div>
+          <div className="stat-value">0</div>
+          <div className="stat-sub">comunicación reactiva</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Objetivo</div>
+          <div className="stat-value">3-5</div>
+          <div className="stat-sub">newsletters/mes por segmento</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Tiempo de producción</div>
+          <div className="stat-value">45 min</div>
+          <div className="stat-sub">briefing + revisión</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Segmento de destinatarios</div>
+        <div className="pills">
+          {allSegmentos.map(s => (
+            <div key={s.value} className={`pill ${segmentos.includes(s.value)?'selected':''}`}
+              onClick={()=>toggleSeg(s.value)}>
+              {s.label}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Contenido de la newsletter</div>
+        <div className="form-grid cols-1">
+          <div className="field">
+            <label>Temas a incluir este mes *</label>
+            <textarea value={temas} onChange={e=>setTemas(e.target.value)}
+              placeholder="Actualización del software Pixeltiming v4.2 con nuevas funciones de gestión de grupos, noticia del sector sobre apertura de nuevos kartings en Francia, anuncio de presencia en feria Offenbach en enero..." />
+          </div>
+          <div className="field">
+            <label>Novedad de producto destacada (opcional)</label>
+            <input value={novedad} onChange={e=>setNovedad(e.target.value)}
+              placeholder="Nueva funcionalidad de control remoto de karts desde app móvil" />
+          </div>
+        </div>
+        <div className="form-grid" style={{marginTop:14}}>
+          <div className="field">
+            <label>Llamada a la acción principal</label>
+            <select value={cta} onChange={e=>setCta(e.target.value)}>
+              {ctas.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label>Idioma de la newsletter</label>
+            <select value={idioma} onChange={e=>setIdioma(e.target.value)}>
+              {idiomas.map(i=><option key={i.value} value={i.value}>{i.label}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <button className="btn btn-primary" onClick={generate} disabled={loading}>
+        {loading ? 'Generando...' : 'Generar newsletter'}
+      </button>
+
+      <OutputBlock result={result} loading={loading} error={error} />
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// APP SHELL
+// ══════════════════════════════════════════════════════════════
+const MODULES = [
+  { id: 'email', label: 'Email prospecto FR', group: 'Comercial' },
+  { id: 'contenidos', label: 'Contenidos SEO', group: 'Marketing' },
+  { id: 'newsletter', label: 'Newsletter', group: 'Marketing' },
+];
+
+function App() {
+  const [active, setActive] = useState('email');
+  const [apiKey, setApiKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
+
+  const groups = [...new Set(MODULES.map(m => m.group))];
+
+  return (
+    <div>
+      <div className="header">
+        <div className="header-logo">
+          <img
+            src="https://pixelcom.es/wp-content/uploads/2023/07/Logos-Pixelcom-black-red.png.webp"
+            alt="Pixelcom"
+            loading="eager"
+          />
+          <div className="product">AI Hub</div>
+        </div>
+        <div className="header-badge">MVP v1.0</div>
+      </div>
+
+      <div className="api-bar">
+        <label>API Key Anthropic</label>
+        <input
+          type={showKey ? 'text' : 'password'}
+          value={apiKey}
+          onChange={e => setApiKey(e.target.value)}
+          placeholder="sk-ant-..."
+        />
+        <button className="btn btn-secondary" style={{fontSize:11,padding:'4px 10px'}}
+          onClick={() => setShowKey(s=>!s)}>
+          {showKey ? 'Ocultar' : 'Mostrar'}
+        </button>
+        <span className="hint">Necesaria para generar contenidos · No se almacena</span>
+      </div>
+
+      <div className="layout">
+        <div className="sidebar">
+          {groups.map(g => (
+            <div key={g}>
+              <div className="sidebar-section">{g}</div>
+              {MODULES.filter(m => m.group === g).map(m => (
+                <div key={m.id}
+                  className={`sidebar-item ${active === m.id ? 'active' : ''}`}
+                  onClick={() => setActive(m.id)}>
+                  <div className="sidebar-dot" />
+                  {m.label}
+                </div>
+              ))}
+            </div>
+          ))}
+          <div className="sidebar-section" style={{marginTop:32}}>Info</div>
+          <div className="sidebar-item" style={{cursor:'default',opacity:0.5}}>
+            <div className="sidebar-dot" />
+            Casos de uso: 1, 3
+          </div>
+          <div className="sidebar-item" style={{cursor:'default',opacity:0.5}}>
+            <div className="sidebar-dot" />
+            Modelo: Claude Sonnet
+          </div>
+        </div>
+
+        <div className="main">
+          {active === 'email' && <Module1 apiKey={apiKey} />}
+          {active === 'contenidos' && <Module2 apiKey={apiKey} />}
+          {active === 'newsletter' && <Module3 apiKey={apiKey} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
