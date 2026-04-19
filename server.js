@@ -4,7 +4,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import {
-  LEAD_SCORING_SYSTEM_PROMPT,
+  buildLeadScoringSystemPrompt,
   parseLeadScoreResponse
 } from './lib/leadScoringPrompt.js';
 import {
@@ -139,6 +139,7 @@ app.post('/api/lead-score', async (req, res) => {
       return res.status(400).json({ error: { message: 'Falta objeto "lead" en el cuerpo JSON.' } });
     }
     const userPrompt = buildLeadScoreUserPrompt(lead);
+    const systemPrompt = buildLeadScoringSystemPrompt(req.body?.catalogShort);
 
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -150,7 +151,7 @@ app.post('/api/lead-score', async (req, res) => {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2048,
-        system: LEAD_SCORING_SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       })
     });
@@ -457,7 +458,11 @@ app.post('/api/crm/enrich', async (req, res) => {
     if (!id || typeof id !== 'string') {
       return res.status(400).json({ error: { message: 'Falta id del contacto.' } });
     }
-    const result = await runCrmEnrichment(id.trim());
+    const catalogFull =
+      typeof req.body?.catalogFull === 'string' ? req.body.catalogFull : '';
+    const result = await runCrmEnrichment(id.trim(), {
+      catalogFull: catalogFull || undefined
+    });
     if (!result.ok) {
       return res.status(result.status).json(result.payload);
     }
@@ -476,7 +481,7 @@ app.post('/api/crm/enrich', async (req, res) => {
 
 app.post('/api/crm/next-mail', async (req, res) => {
   try {
-    const { id, brief } = req.body ?? {};
+    const { id, brief, catalogShort } = req.body ?? {};
     if (!id || typeof id !== 'string') {
       return res
         .status(400)
@@ -484,7 +489,11 @@ app.post('/api/crm/next-mail', async (req, res) => {
     }
     const result = await runCrmNextMail({
       id: id.trim(),
-      brief: typeof brief === 'string' ? brief : ''
+      brief: typeof brief === 'string' ? brief : '',
+      catalogShort:
+        typeof catalogShort === 'string' && catalogShort.trim()
+          ? catalogShort
+          : undefined
     });
     if (!result.ok) {
       return res.status(result.status).json(result.payload);

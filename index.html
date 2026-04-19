@@ -778,6 +778,101 @@
   .crm-enc-alto { background: #D1FAE5; color: #047857; }
   .crm-enc-medio { background: #FEF3C7; color: #B45309; }
   .crm-enc-bajo { background: #F1F5F9; color: #64748B; }
+
+  .crm-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow-y: auto;
+    animation: crmFadeIn 0.15s ease-out;
+  }
+  @keyframes crmFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .crm-modal-panel {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 720px;
+    max-height: calc(100vh - 48px);
+    display: flex;
+    flex-direction: column;
+    margin-top: 0;
+  }
+  .crm-modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .crm-modal-body {
+    padding: 18px 20px 24px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+  }
+  .crm-modal-close {
+    font-family: inherit;
+    font-size: 22px;
+    line-height: 1;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .crm-modal-close:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+  .crm-modal-section {
+    margin-bottom: 22px;
+  }
+  .crm-modal-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+  .crm-notes-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+  .crm-notes-box textarea {
+    width: 100%;
+    min-height: 100px;
+    margin-bottom: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    resize: vertical;
+  }
+  .crm-notes-box textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
 </style>
 </head>
 <body>
@@ -809,11 +904,122 @@ const SIGNATURE_HINT = {
   holandes: 'Sluit altijd af als „Het Pixelcom verkoopteam · www.pixelcom.es“.',
 };
 
-/** Alineado con lib/pixelcomContext.js — web pixelcom.es (Motorsport, Rental, Marcadores) */
-const PIXELCOM_CATALOGO_PARA_IA =
-  'Catálogo de referencia: Motorsport (circuitos: control, luces salida, paneles, pit lane; karting competición: software, 4Flags, paneles, contadores; campo de pruebas; otros motor: LED, contadores, pantallas). ' +
-  'Go-Kart Rental: SW cronometraje/TV/TPV/Verifactu; HW kart (remoto, parada, transponder, displays) y pista (banderas, semáforos, contadores, videomarcadores, podio, reducción velocidad amarilla). ' +
-  'Marcadores: videomarcadores, fútbol, pádel, multideporte. Apps Pixelcom y PKC. Servicios online, in situ, asesoramiento, franquicias. Grafismo TV. Modelo All-in-One HW+SW+soporte. No inventes productos fuera de estas líneas.';
+/** Valores por defecto alineados con lib/pixelcomContext.js (editables en «Catálogo») */
+const PIXELCOM_CATALOG_DEFAULT_SHORT =
+  'Pixelcom: tecnología para deporte motor y instalaciones deportivas. Líneas ' +
+  'Pixeltiming (karting), Pixelmotorsport / señalización circuitos FIA, videomarcadores ' +
+  'y cronometraje (fútbol, pádel, multideporte), grafismo TV, rental go-kart. ' +
+  'Hardware pista/kart: luces de salida, 4Flags, banderas electrónicas, semáforos, ' +
+  'transponders, displays, videomarcadores, podio digital, pit lane, TPV, software de control. ' +
+  'Apps: Pixelcom y Pixelcom Karting Control (PKC). Servicios: online, in situ, asesoramiento, franquicias. ' +
+  'Modelo All-in-One: hardware + software + soporte.';
+
+const PIXELCOM_CATALOG_DEFAULT_FULL = `Catálogo de referencia PIXELCOM (no inventar productos ajenos a estas líneas sin marcarlos como genéricos del sector).
+
+Áreas: Motorsport, Go-Kart Rental, Marcadores / videomarcadores, Grafismo TV, proyectos multisector.
+
+Motorsport — Circuitos: software de control, luces de salida, paneles luminosos, sistemas pit lane, paneles informativos.
+
+Motorsport — Karting competición: software, luces de salida, 4Flags luces de seguridad, paneles informativos, contador manual 2 dígitos, 4Flags V2.
+
+Motorsport — Campo de pruebas: software, sistemas de detección, banderas electrónicas.
+
+Motorsport — Otros deportes motor: sistema luces de arranque, señalización LED adicional, contadores de dígitos, pantallas adicionales.
+
+Go-Kart Rental — Software: cronometraje karting, software TV, TPV punto de venta, cumplimiento Verifactu / antifraude.
+
+Go-Kart Rental — Hardware en kart: sistemas control remoto, sistema de parada, transponder de cronometraje, displays en volante.
+
+Go-Kart Rental — Hardware en pista: banderas electrónicas de seguridad, semáforos, contadores vuelta/tiempo, decodificador estación base, videomarcadores karting, podio digital, reducción automática de velocidad con bandera amarilla.
+
+Apps: APP Pixelcom, APP Pixelcom Karting Control (PKC).
+
+Servicios: servicios en línea, servicios in situ, asesoramiento, franquicias.
+
+Marcadores: software para videomarcadores, marcadores electrónicos, cronómetros electrónicos, videomarcadores electrónicos. Deportes: fútbol, tenis y pádel, multideporte.`;
+
+const LS_PIXELCOM_CATALOG = 'pixelcom_catalog_config_v1';
+
+function getDefaultPixelcomCatalog() {
+  return {
+    fullText: PIXELCOM_CATALOG_DEFAULT_FULL,
+    shortText: PIXELCOM_CATALOG_DEFAULT_SHORT,
+    commercialProducts: [
+      { value: 'pixeltiming', label: 'Pixeltiming — sistemas karting' },
+      { value: 'pixelmotorsport', label: 'Pixelmotorsport — señalización circuitos' },
+      { value: 'ambos', label: 'Ambas líneas' }
+    ],
+    scoringProducts: [
+      { value: 'pixeltiming_completo', label: 'Pixeltiming completo' },
+      { value: 'solo_sw', label: 'Solo software' },
+      { value: 'pixelmotorsport', label: 'Pixelmotorsport' },
+      { value: 'ambas', label: 'Ambas' },
+      { value: 'sin_definir', label: 'Sin definir' }
+    ]
+  };
+}
+
+function mergePixelcomCatalog(saved) {
+  const d = getDefaultPixelcomCatalog();
+  if (!saved || typeof saved !== 'object') return d;
+  return {
+    fullText: typeof saved.fullText === 'string' ? saved.fullText : d.fullText,
+    shortText: typeof saved.shortText === 'string' ? saved.shortText : d.shortText,
+    commercialProducts:
+      Array.isArray(saved.commercialProducts) && saved.commercialProducts.length
+        ? saved.commercialProducts
+        : d.commercialProducts,
+    scoringProducts:
+      Array.isArray(saved.scoringProducts) && saved.scoringProducts.length
+        ? saved.scoringProducts
+        : d.scoringProducts
+  };
+}
+
+function loadPixelcomCatalogFromStorage() {
+  try {
+    const raw = localStorage.getItem(LS_PIXELCOM_CATALOG);
+    if (!raw) return getDefaultPixelcomCatalog();
+    return mergePixelcomCatalog(JSON.parse(raw));
+  } catch {
+    return getDefaultPixelcomCatalog();
+  }
+}
+
+function productLineLabel(products, value) {
+  const x = products.find((p) => p.value === value);
+  return x ? x.label : value;
+}
+
+function usePixelcomCatalog() {
+  const [catalog, setCatalog] = useState(() => loadPixelcomCatalogFromStorage());
+
+  useEffect(() => {
+    const sync = () => setCatalog(loadPixelcomCatalogFromStorage());
+    window.addEventListener('pixelcom-catalog-changed', sync);
+    return () => window.removeEventListener('pixelcom-catalog-changed', sync);
+  }, []);
+
+  const saveCatalog = (next) => {
+    try {
+      localStorage.setItem(LS_PIXELCOM_CATALOG, JSON.stringify(next));
+      window.dispatchEvent(new Event('pixelcom-catalog-changed'));
+      setCatalog(loadPixelcomCatalogFromStorage());
+    } catch (e) {
+      alert(e.message || 'No se pudo guardar el catálogo.');
+    }
+  };
+
+  const resetCatalog = () => {
+    try {
+      localStorage.removeItem(LS_PIXELCOM_CATALOG);
+    } catch (_) {}
+    window.dispatchEvent(new Event('pixelcom-catalog-changed'));
+    setCatalog(getDefaultPixelcomCatalog());
+  };
+
+  return { catalog, saveCatalog, resetCatalog };
+}
 
 // ── Anthropic API call ──────────────────────────────────────────
 async function callClaude(apiKey, systemPrompt, userPrompt) {
@@ -930,11 +1136,16 @@ function lsBucket(r) {
   return 'low';
 }
 
-async function fetchLeadScore(lead) {
+async function fetchLeadScore(lead, catalogShort) {
   const res = await fetch('/api/lead-score', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ lead })
+    body: JSON.stringify({
+      lead,
+      ...(typeof catalogShort === 'string' && catalogShort.trim()
+        ? { catalogShort: catalogShort.trim() }
+        : {})
+    })
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -1271,6 +1482,7 @@ function OutputBlock({
 // MÓDULO 1 — Email de primer contacto (HTML + webhook)
 // ══════════════════════════════════════════════════════════════
 function Module1({ apiKey }) {
+  const { catalog } = usePixelcomCatalog();
   const [outputLanguage, setOutputLanguage] = useState('frances');
   const [form, setForm] = useState({
     nombre: '', empresa: '', emailProspecto: '', pais: 'Francia', tipo: 'nueva_instalacion',
@@ -1294,11 +1506,7 @@ function Module1({ apiKey }) {
     { value: 'circuito_velocidad', label: 'Circuito de velocidad' },
     { value: 'consultor', label: 'Consultor / proyectista de circuitos' },
   ];
-  const productos = [
-    { value: 'pixeltiming', label: 'Pixeltiming — sistemas karting' },
-    { value: 'pixelmotorsport', label: 'Pixelmotorsport — señalización velocidad' },
-    { value: 'ambos', label: 'Ambas líneas' },
-  ];
+  const productos = catalog.commercialProducts;
 
   const langLabel = outputLanguageLabel(outputLanguage);
   const sig = SIGNATURE_HINT[outputLanguage] || SIGNATURE_HINT.espanol;
@@ -1308,13 +1516,13 @@ function Module1({ apiKey }) {
     setLoading(true); setError(''); setResult(''); setSavedGenId(null); setWebhookError(''); setWebhookOk(false);
     const system = `Eres el asistente comercial de Pixelcom Ingeniería, empresa española especializada en sistemas de cronometraje y señalización para karting y circuitos de velocidad (marcas Pixeltiming y Pixelmotorsport). Redactas correos electrónicos profesionales en ${langLabel}. El tono es cercano pero técnico, confiado, breve y orientado a resultados. Evita plantillas genéricas. ${sig}
 
-${PIXELCOM_CATALOGO_PARA_IA}`;
+${catalog.fullText}`;
     const user = `Redacta un email de primer contacto en ${langLabel} para:
 - Nombre contacto: ${form.nombre}
 - Empresa: ${form.empresa}
 - País: ${form.pais}
 - Tipo de instalación / perfil: ${tiposInstalacion.find(t=>t.value===form.tipo)?.label}
-- Producto de interés: ${productos.find(p=>p.value===form.producto)?.label}
+- Producto de interés: ${productLineLabel(productos, form.producto)}
 - Contexto adicional: ${form.contexto || 'ninguno'}
 
 El correo debe: presentar brevemente Pixelcom, destacar el modelo All-in-One como diferencial, hacer una pregunta de apertura relevante para su perfil y proponer una llamada o demo. Máximo 180 palabras en el cuerpo.
@@ -1441,7 +1649,9 @@ Reglas:
           <div className="field">
             <label>Producto de interés</label>
             <select value={form.producto} onChange={e=>set('producto',e.target.value)}>
-              {productos.map(p=><option key={p.value} value={p.value}>{p.label}</option>)}
+              {productos.map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
             </select>
           </div>
           <div className="field">
@@ -1485,6 +1695,7 @@ Reglas:
 // MÓDULO 2 — Generador de contenidos SEO
 // ══════════════════════════════════════════════════════════════
 function Module2({ apiKey }) {
+  const { catalog } = usePixelcomCatalog();
   const [outputLanguage, setOutputLanguage] = useState('frances');
   const [form, setForm] = useState({
     tema: '', linea: 'pixeltiming',
@@ -1516,16 +1727,17 @@ function Module2({ apiKey }) {
     const idiomaLabel = outputLanguageLabel(outputLanguage);
     const system = `Eres experto en marketing de contenidos B2B para el sector de tecnología deportiva. Trabajas para Pixelcom Ingeniería, empresa española líder en sistemas de cronometraje para karting (Pixeltiming) y señalización para circuitos de velocidad (Pixelmotorsport). Redactas contenido en ${idiomaLabel} de alta calidad, optimizado para SEO, con tono técnico pero accesible. El diferencial de Pixelcom es su modelo All-in-One: hardware + software + soporte integrados, sin cuotas mensuales.
 
-${PIXELCOM_CATALOGO_PARA_IA}`;
+${catalog.fullText}`;
 
     const tipoLabel = tipos.find(t=>t.value===form.tipo)?.label;
     const publicoLabel = publicos.find(p=>p.value===form.publico)?.label;
+    const lineaLabel = productLineLabel(catalog.commercialProducts, form.linea);
 
     const user = `Crea el siguiente contenido en ${idiomaLabel}:
 
 Tipo: ${tipoLabel}
 Tema / título sugerido: ${form.tema}
-Línea de producto: ${form.linea === 'pixeltiming' ? 'Pixeltiming (karting)' : form.linea === 'pixelmotorsport' ? 'Pixelmotorsport (circuitos velocidad)' : 'Ambas líneas'}
+Línea de producto: ${lineaLabel}
 Público objetivo: ${publicoLabel}
 Keywords a incluir: ${form.keywords || 'las más relevantes del sector'}
 
@@ -1604,9 +1816,9 @@ Entrega el resultado ÚNICAMENTE como fragmento HTML (sin markdown, sin bloques 
           <div className="field">
             <label>Línea de producto</label>
             <select value={form.linea} onChange={e=>set('linea',e.target.value)}>
-              <option value="pixeltiming">Pixeltiming — karting</option>
-              <option value="pixelmotorsport">Pixelmotorsport — velocidad</option>
-              <option value="ambas">Ambas líneas</option>
+              {catalog.commercialProducts.map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
             </select>
           </div>
           <div className="field">
@@ -1644,6 +1856,7 @@ Entrega el resultado ÚNICAMENTE como fragmento HTML (sin markdown, sin bloques 
 // MÓDULO 3 — Newsletter segmentada
 // ══════════════════════════════════════════════════════════════
 function Module3({ apiKey }) {
+  const { catalog } = usePixelcomCatalog();
   const [outputLanguage, setOutputLanguage] = useState('frances');
   const [segmentos, setSegmentos] = useState(['timing_fr']);
   const [temas, setTemas] = useState('');
@@ -1682,7 +1895,7 @@ function Module3({ apiKey }) {
 
     const system = `Eres experto en email marketing B2B para Pixelcom Ingeniería, empresa española de tecnología deportiva (Pixeltiming para karting, Pixelmotorsport para circuitos de velocidad). Redactas newsletters profesionales en ${idiomaLabel} que mezclan novedades técnicas, noticias del sector y llamadas a la acción claras. Tono cercano, técnico y orientado a negocio. Nunca uses jerga de marketing genérica.
 
-${PIXELCOM_CATALOGO_PARA_IA}`;
+${catalog.fullText}`;
 
     const user = `Redacta una newsletter mensual en ${idiomaLabel} para el siguiente segmento: ${segLabels}.
 
@@ -1811,6 +2024,7 @@ Entrega el resultado ÚNICAMENTE como fragmento HTML (sin markdown, sin bloques 
 // MÓDULO 4 — Scoring de leads + pipeline
 // ══════════════════════════════════════════════════════════════
 function Module4() {
+  const { catalog } = usePixelcomCatalog();
   const [view, setView] = useState('evaluar');
   const [form, setForm] = useState({
     nombre: '', empresa: '', pais: 'Francia', tipo: 'nueva_karting', producto: 'pixeltiming_completo',
@@ -1902,7 +2116,7 @@ function Module4() {
     setError('');
     setLastResult(null);
     try {
-      const r = await fetchLeadScore(buildLeadPayload());
+      const r = await fetchLeadScore(buildLeadPayload(), catalog.shortText);
       setLastResult(r);
       logActivity('scoring', 'score', {
         score: r.score,
@@ -2147,11 +2361,9 @@ function Module4() {
               <div className="field">
                 <label>Producto</label>
                 <select value={form.producto} onChange={(e) => set('producto', e.target.value)}>
-                  <option value="pixeltiming_completo">Pixeltiming completo</option>
-                  <option value="solo_sw">Solo SW</option>
-                  <option value="pixelmotorsport">Pixelmotorsport</option>
-                  <option value="ambas">Ambas</option>
-                  <option value="sin_definir">Sin definir</option>
+                  {catalog.scoringProducts.map((p) => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
                 </select>
               </div>
               <div className="field">
@@ -2269,6 +2481,223 @@ function Module4() {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO — Catálogo Pixelcom (textos IA + opciones de selectores)
+// ══════════════════════════════════════════════════════════════
+function ModuleCatalog() {
+  const { saveCatalog, resetCatalog } = usePixelcomCatalog();
+  const [draft, setDraft] = useState(() => loadPixelcomCatalogFromStorage());
+  const [savedMsg, setSavedMsg] = useState('');
+
+  const updateCommercial = (i, field, v) => {
+    setDraft((d) => {
+      const list = [...d.commercialProducts];
+      list[i] = { ...list[i], [field]: v };
+      return { ...d, commercialProducts: list };
+    });
+  };
+  const updateScoring = (i, field, v) => {
+    setDraft((d) => {
+      const list = [...d.scoringProducts];
+      list[i] = { ...list[i], [field]: v };
+      return { ...d, scoringProducts: list };
+    });
+  };
+
+  const save = () => {
+    const m = mergePixelcomCatalog(draft);
+    saveCatalog(m);
+    setDraft(loadPixelcomCatalogFromStorage());
+    setSavedMsg('Catálogo guardado en este navegador.');
+    setTimeout(() => setSavedMsg(''), 4000);
+    logActivity('catalog', 'save', {});
+  };
+
+  const restoreDefaults = () => {
+    if (!window.confirm('¿Restaurar textos y listas por defecto? Se perderá la personalización guardada en este navegador.')) return;
+    resetCatalog();
+    setDraft(getDefaultPixelcomCatalog());
+    setSavedMsg('Valores por defecto cargados.');
+    setTimeout(() => setSavedMsg(''), 4000);
+    logActivity('catalog', 'reset', {});
+  };
+
+  return (
+    <div>
+      <div className="module-header">
+        <div className="module-tag">DATOS · CATÁLOGO</div>
+        <div className="module-title">Catálogo de productos Pixelcom</div>
+        <div className="module-desc">
+          Define el <strong>texto de referencia</strong> que recibe la IA en email, contenidos SEO, newsletter,
+          enriquecimiento CRM, próximo mail y scoring de leads, y las <strong>opciones de los desplegables</strong>{' '}
+          (producto de interés, línea SEO, producto del lead). Los cambios se guardan en{' '}
+          <code style={{ fontSize: 11 }}>localStorage</code> de este navegador; el servidor usa lo que envía el Hub
+          en cada petición (CRM / scoring).
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Texto largo (referencia detallada)</div>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.55 }}>
+          Se inyecta en prompts de generación de contenido y en el enriquecimiento CRM (campo{' '}
+          <code style={{ fontSize: 11 }}>catalogFull</code>).
+        </p>
+        <div className="field">
+          <textarea
+            value={draft.fullText}
+            onChange={(e) => setDraft((d) => ({ ...d, fullText: e.target.value }))}
+            style={{ minHeight: 280, fontFamily: 'inherit', fontSize: 13 }}
+          />
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-title">Texto corto (resumen para scoring y mails CRM)</div>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.55 }}>
+          Versión compacta para el motor de scoring y el próximo mail al cliente (
+          <code style={{ fontSize: 11 }}>catalogShort</code>).
+        </p>
+        <div className="field">
+          <textarea
+            value={draft.shortText}
+            onChange={(e) => setDraft((d) => ({ ...d, shortText: e.target.value }))}
+            style={{ minHeight: 120, fontFamily: 'inherit', fontSize: 13 }}
+          />
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-title">Productos / líneas — selectores comerciales</div>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+          Email prospecto (producto de interés) y contenidos SEO (línea de producto). El <em>valor interno</em> no debe
+          tener espacios (se usa en JSON guardado).
+        </p>
+        {draft.commercialProducts.map((row, i) => (
+          <div className="form-grid" key={`c-${i}`} style={{ marginBottom: 10, alignItems: 'end' }}>
+            <div className="field">
+              <label>Valor interno</label>
+              <input
+                value={row.value}
+                onChange={(e) => updateCommercial(i, 'value', e.target.value)}
+                placeholder="pixeltiming"
+              />
+            </div>
+            <div className="field">
+              <label>Etiqueta visible</label>
+              <input
+                value={row.label}
+                onChange={(e) => updateCommercial(i, 'label', e.target.value)}
+                placeholder="Pixeltiming — …"
+              />
+            </div>
+            <div className="field" style={{ maxWidth: 120 }}>
+              <label>&nbsp;</label>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ fontSize: 12 }}
+                onClick={() =>
+                  setDraft((d) => ({
+                    ...d,
+                    commercialProducts: d.commercialProducts.filter((_, j) => j !== i)
+                  }))
+                }
+              >
+                Quitar
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ marginTop: 8 }}
+          onClick={() =>
+            setDraft((d) => ({
+              ...d,
+              commercialProducts: [
+                ...d.commercialProducts,
+                { value: `linea_${Date.now()}`, label: 'Nueva línea' }
+              ]
+            }))
+          }
+        >
+          Añadir opción
+        </button>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-title">Productos — scoring de leads</div>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+          Opciones del campo «Producto» en el formulario de evaluación de leads (valores coherentes con el prompt de puntuación).
+        </p>
+        {draft.scoringProducts.map((row, i) => (
+          <div className="form-grid" key={`s-${i}`} style={{ marginBottom: 10, alignItems: 'end' }}>
+            <div className="field">
+              <label>Valor interno</label>
+              <input
+                value={row.value}
+                onChange={(e) => updateScoring(i, 'value', e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>Etiqueta visible</label>
+              <input
+                value={row.label}
+                onChange={(e) => updateScoring(i, 'label', e.target.value)}
+              />
+            </div>
+            <div className="field" style={{ maxWidth: 120 }}>
+              <label>&nbsp;</label>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ fontSize: 12 }}
+                onClick={() =>
+                  setDraft((d) => ({
+                    ...d,
+                    scoringProducts: d.scoringProducts.filter((_, j) => j !== i)
+                  }))
+                }
+              >
+                Quitar
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ marginTop: 8 }}
+          onClick={() =>
+            setDraft((d) => ({
+              ...d,
+              scoringProducts: [
+                ...d.scoringProducts,
+                { value: `prod_${Date.now()}`, label: 'Nuevo producto' }
+              ]
+            }))
+          }
+        >
+          Añadir opción
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 20, alignItems: 'center' }}>
+        <button type="button" className="btn btn-primary" onClick={save}>
+          Guardar catálogo
+        </button>
+        <button type="button" className="btn btn-secondary" onClick={restoreDefaults}>
+          Restaurar valores por defecto
+        </button>
+        {savedMsg && (
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{savedMsg}</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -2530,13 +2959,18 @@ function ModuleCRM() {
   });
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [expandId, setExpandId] = useState(null);
+  /** Contacto cuyo detalle se muestra en modal */
+  const [viewContactId, setViewContactId] = useState(null);
+  const [detailNotesDraft, setDetailNotesDraft] = useState('');
+  const [notesSaving, setNotesSaving] = useState(false);
   const [enrichingId, setEnrichingId] = useState(null);
   const [mailBriefById, setMailBriefById] = useState({});
   const [nextMailLoadingId, setNextMailLoadingId] = useState(null);
   const [nextMailTextById, setNextMailTextById] = useState({});
   const [nextMailSavedDbIdByContact, setNextMailSavedDbIdByContact] =
     useState({});
+
+  const { catalog: crmCatalog } = usePixelcomCatalog();
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -2560,6 +2994,37 @@ function ModuleCRM() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (!viewContactId) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setViewContactId(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [viewContactId]);
+
+  useEffect(() => {
+    if (
+      viewContactId &&
+      !contacts.some((c) => c.id === viewContactId)
+    ) {
+      setViewContactId(null);
+    }
+  }, [contacts, viewContactId]);
+
+  const openContactDetail = (c, opts = {}) => {
+    setViewContactId(c.id);
+    setDetailNotesDraft(c.notas || '');
+    setErr('');
+    if (opts.scrollMail) {
+      setTimeout(() => {
+        document
+          .getElementById(`crm-mail-${c.id}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 280);
+    }
+  };
 
   const resetForm = () => {
     setForm({
@@ -2635,6 +3100,7 @@ function ModuleCRM() {
       }
       setContacts((prev) => prev.filter((c) => c.id !== id));
       if (editId === id) resetForm();
+      if (viewContactId === id) setViewContactId(null);
       logActivity('crm', 'delete', { id });
     } catch (e) {
       setErr(e.message);
@@ -2654,7 +3120,10 @@ function ModuleCRM() {
       const res = await fetch('/api/crm/enrich', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
+        body: JSON.stringify({
+          id,
+          catalogFull: crmCatalog.fullText
+        })
       });
 
       /** Netlify Background Function: 202 y trabajo largo en servidor (sin 504) */
@@ -2678,7 +3147,7 @@ function ModuleCRM() {
             setContacts((prev) =>
               prev.map((c) => (c.id === entry.id ? entry : c))
             );
-            setExpandId(id);
+            openContactDetail(entry);
             logActivity('crm', 'enrich', { id });
             done = true;
           }
@@ -2704,7 +3173,7 @@ function ModuleCRM() {
         setContacts((prev) =>
           prev.map((c) => (c.id === data.entry.id ? data.entry : c))
         );
-        setExpandId(id);
+        openContactDetail(data.entry);
         logActivity('crm', 'enrich', {
           id,
           webSources: data.webSearch?.sourcesCount
@@ -2714,6 +3183,48 @@ function ModuleCRM() {
       setErr(e.message);
     }
     setEnrichingId(null);
+  };
+
+  const modalContact = viewContactId
+    ? contacts.find((x) => x.id === viewContactId)
+    : null;
+
+  const saveDetailNotes = async () => {
+    const c = modalContact;
+    if (!c) return;
+    setNotesSaving(true);
+    setErr('');
+    try {
+      const res = await fetch('/api/crm', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: c.id,
+          nombre: c.nombre,
+          empresa: c.empresa,
+          email: c.email,
+          telefono: c.telefono,
+          pais: c.pais,
+          web: c.web,
+          notas: detailNotesDraft
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error?.message || `Error ${res.status}`);
+      }
+      if (data.entry) {
+        setContacts((prev) =>
+          prev.map((x) => (x.id === data.entry.id ? data.entry : x))
+        );
+        if (editId === data.entry.id) {
+          setForm((f) => ({ ...f, notas: data.entry.notas || '' }));
+        }
+      }
+    } catch (e) {
+      setErr(e.message);
+    }
+    setNotesSaving(false);
   };
 
   const generateNextMail = async (c) => {
@@ -2726,7 +3237,8 @@ function ModuleCRM() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: c.id,
-          brief: mailBriefById[c.id] || ''
+          brief: mailBriefById[c.id] || '',
+          catalogShort: crmCatalog.shortText
         })
       });
       const data = await res.json().catch(() => ({}));
@@ -3052,11 +3564,9 @@ function ModuleCRM() {
                             <button
                               type="button"
                               className="crm-action-btn"
-                              onClick={() =>
-                                setExpandId((x) => (x === c.id ? null : c.id))
-                              }
+                              onClick={() => openContactDetail(c)}
                             >
-                              {expandId === c.id ? 'Ocultar' : 'Ver'}
+                              Ver
                             </button>
                             <button
                               type="button"
@@ -3076,14 +3586,9 @@ function ModuleCRM() {
                             <button
                               type="button"
                               className="crm-action-btn"
-                              onClick={() => {
-                                setExpandId(c.id);
-                                setTimeout(() => {
-                                  document
-                                    .getElementById(`crm-mail-${c.id}`)
-                                    ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                                }, 80);
-                              }}
+                              onClick={() =>
+                                openContactDetail(c, { scrollMail: true })
+                              }
                             >
                               Próximo mail
                             </button>
@@ -3097,88 +3602,6 @@ function ModuleCRM() {
                           </div>
                         </td>
                       </tr>
-                      {expandId === c.id && (
-                        <tr>
-                          <td colSpan={5} style={{ background: 'var(--bg)', verticalAlign: 'top' }}>
-                            <div style={{ padding: '8px 0 16px' }}>
-                              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
-                                <strong>Email:</strong> {c.email || '—'} ·{' '}
-                                <strong>Tel:</strong> {c.telefono || '—'} ·{' '}
-                                <strong>Web:</strong> {c.web || '—'}
-                              </div>
-                              {c.notas && (
-                                <div style={{ fontSize: 12, marginBottom: 10 }}>
-                                  <strong>Notas:</strong> {c.notas}
-                                </div>
-                              )}
-                              {renderEnrichment(c.enrichment)}
-                              {!c.enrichment && (
-                                <p style={{ fontSize: 12, color: 'var(--text-faint)' }}>
-                                  Pulsa «Enriquecer IA» para buscar en web vía Claude (API con web_search) y generar el perfil.
-                                </p>
-                              )}
-
-                              <div
-                                id={`crm-mail-${c.id}`}
-                                style={{
-                                  marginTop: 22,
-                                  paddingTop: 18,
-                                  borderTop: '1px solid var(--border)'
-                                }}
-                              >
-                                <div className="card-title">Próximo mail al cliente</div>
-                                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.6 }}>
-                                  Genera un correo de <strong>seguimiento</strong> (no primer contacto en frío)
-                                  usando datos del CRM y, si existe, el enriquecimiento IA. Idioma según país del contacto.
-                                  Se guarda en el histórico como email de prospecto (tipo CRM).
-                                </p>
-                                <div className="field" style={{ marginBottom: 12 }}>
-                                  <label>Brief opcional para este correo</label>
-                                  <textarea
-                                    value={mailBriefById[c.id] || ''}
-                                    onChange={(e) =>
-                                      setMailBriefById((prev) => ({
-                                        ...prev,
-                                        [c.id]: e.target.value
-                                      }))
-                                    }
-                                    placeholder="Ej.: proponer demo Pixeltiming 30 min, mencionar feria donde hablamos…"
-                                    style={{ minHeight: 72 }}
-                                  />
-                                </div>
-                                <button
-                                  type="button"
-                                  className="btn btn-primary"
-                                  style={{ marginBottom: 16 }}
-                                  onClick={() => generateNextMail(c)}
-                                  disabled={nextMailLoadingId === c.id}
-                                >
-                                  {nextMailLoadingId === c.id ? 'Generando correo…' : 'Generar próximo mail'}
-                                </button>
-                                <OutputBlock
-                                  result={nextMailTextById[c.id] || ''}
-                                  loading={nextMailLoadingId === c.id}
-                                  error=""
-                                  variant="email"
-                                  savedEntryId={
-                                    nextMailSavedDbIdByContact[c.id] ?? null
-                                  }
-                                  onPersisted={(entry) =>
-                                    entry &&
-                                    setNextMailTextById((prev) => ({
-                                      ...prev,
-                                      [c.id]: generatedEntryToResult(
-                                        entry,
-                                        'email'
-                                      )
-                                    }))
-                                  }
-                                />
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
                     </React.Fragment>
                   ))}
                 </tbody>
@@ -3195,6 +3618,189 @@ function ModuleCRM() {
           </button>
         </div>
       )}
+
+      {modalContact && (
+        <div
+          className="crm-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setViewContactId(null);
+          }}
+        >
+          <div
+            className="crm-modal-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="crm-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="crm-modal-head">
+              <div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--text-faint)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em'
+                  }}
+                >
+                  Contacto
+                </div>
+                <h2
+                  id="crm-modal-title"
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 600,
+                    margin: '4px 0 2px',
+                    lineHeight: 1.25
+                  }}
+                >
+                  {modalContact.empresa}
+                </h2>
+                <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>
+                  {modalContact.nombre}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="crm-modal-close"
+                onClick={() => setViewContactId(null)}
+                aria-label="Cerrar ventana"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="crm-modal-body">
+              <div className="crm-modal-section">
+                <div className="crm-modal-section-title">Datos</div>
+                <div style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--text)' }}>
+                  <strong style={{ color: 'var(--text-muted)' }}>Email:</strong>{' '}
+                  {modalContact.email || '—'}
+                  <br />
+                  <strong style={{ color: 'var(--text-muted)' }}>Teléfono:</strong>{' '}
+                  {modalContact.telefono || '—'}
+                  <br />
+                  <strong style={{ color: 'var(--text-muted)' }}>Web:</strong>{' '}
+                  {modalContact.web ? (
+                    <a href={modalContact.web.startsWith('http') ? modalContact.web : `https://${modalContact.web}`} target="_blank" rel="noopener noreferrer">
+                      {modalContact.web}
+                    </a>
+                  ) : (
+                    '—'
+                  )}
+                  <br />
+                  <strong style={{ color: 'var(--text-muted)' }}>País:</strong>{' '}
+                  {modalContact.pais || '—'}
+                </div>
+              </div>
+
+              <div className="crm-modal-section">
+                <div className="crm-modal-section-title">Notas internas</div>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>
+                  Contexto comercial, ferias, producto de interés o seguimiento. Se guardan en el contacto y pueden usarlas las demás herramientas de IA.
+                </p>
+                <div className="crm-notes-box">
+                  <textarea
+                    value={detailNotesDraft}
+                    onChange={(e) => setDetailNotesDraft(e.target.value)}
+                    placeholder="Ej.: Interesado en Pixeltiming All-in-One; nos vimos en feria Offenbach 2026…"
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ fontSize: 12, padding: '8px 16px' }}
+                    onClick={saveDetailNotes}
+                    disabled={notesSaving}
+                  >
+                    {notesSaving ? 'Guardando…' : 'Guardar notas'}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 18 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ fontSize: 12 }}
+                  onClick={() => {
+                    loadEdit(modalContact);
+                    setViewContactId(null);
+                  }}
+                >
+                  Editar todos los datos en el formulario
+                </button>
+              </div>
+
+              <div className="crm-modal-section">
+                <div className="crm-modal-section-title">Perfil IA (web)</div>
+                {renderEnrichment(modalContact.enrichment)}
+                {!modalContact.enrichment && (
+                  <p style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 8 }}>
+                    Pulsa «Enriquecer IA» en la tabla para generar el perfil con búsqueda web.
+                  </p>
+                )}
+              </div>
+
+              <div
+                id={`crm-mail-${modalContact.id}`}
+                style={{
+                  marginTop: 8,
+                  paddingTop: 18,
+                  borderTop: '1px solid var(--border)'
+                }}
+              >
+                <div className="card-title">Próximo mail al cliente</div>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.6 }}>
+                  Genera un correo de <strong>seguimiento</strong> (no primer contacto en frío)
+                  usando datos del CRM y, si existe, el enriquecimiento IA. Idioma según país del contacto.
+                  Se guarda en el histórico como email de prospecto (tipo CRM).
+                </p>
+                <div className="field" style={{ marginBottom: 12 }}>
+                  <label>Brief opcional para este correo</label>
+                  <textarea
+                    value={mailBriefById[modalContact.id] || ''}
+                    onChange={(e) =>
+                      setMailBriefById((prev) => ({
+                        ...prev,
+                        [modalContact.id]: e.target.value
+                      }))
+                    }
+                    placeholder="Ej.: proponer demo Pixeltiming 30 min, mencionar feria donde hablamos…"
+                    style={{ minHeight: 72 }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ marginBottom: 16 }}
+                  onClick={() => generateNextMail(modalContact)}
+                  disabled={nextMailLoadingId === modalContact.id}
+                >
+                  {nextMailLoadingId === modalContact.id
+                    ? 'Generando correo…'
+                    : 'Generar próximo mail'}
+                </button>
+                <OutputBlock
+                  result={nextMailTextById[modalContact.id] || ''}
+                  loading={nextMailLoadingId === modalContact.id}
+                  error=""
+                  variant="email"
+                  savedEntryId={
+                    nextMailSavedDbIdByContact[modalContact.id] ?? null
+                  }
+                  onPersisted={(entry) =>
+                    entry &&
+                    setNextMailTextById((prev) => ({
+                      ...prev,
+                      [modalContact.id]: generatedEntryToResult(entry, 'email')
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -3208,6 +3814,7 @@ const MODULES = [
   { id: 'crm', label: 'CRM', group: 'Comercial' },
   { id: 'contenidos', label: 'Contenidos SEO', group: 'Marketing' },
   { id: 'newsletter', label: 'Newsletter', group: 'Marketing' },
+  { id: 'catalogo', label: 'Catálogo', group: 'Datos' },
   { id: 'historico', label: 'Histórico', group: 'Datos' }
 ];
 
@@ -3263,6 +3870,7 @@ function App() {
           {active === 'crm' && <ModuleCRM />}
           {active === 'contenidos' && <Module2 apiKey={apiKey} />}
           {active === 'newsletter' && <Module3 apiKey={apiKey} />}
+          {active === 'catalogo' && <ModuleCatalog />}
           {active === 'historico' && <ModuleHistoric />}
         </div>
       </div>

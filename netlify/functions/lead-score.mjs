@@ -1,5 +1,5 @@
 import {
-  LEAD_SCORING_SYSTEM_PROMPT,
+  buildLeadScoringSystemPrompt,
   parseLeadScoreResponse
 } from '../../lib/leadScoringPrompt.js';
 
@@ -75,6 +75,9 @@ export async function handler(event) {
   }
 
   const userPrompt = buildLeadScoreUserPrompt(lead);
+  const systemPrompt = buildLeadScoringSystemPrompt(
+    typeof payload?.catalogShort === 'string' ? payload.catalogShort : ''
+  );
 
   try {
     const upstream = await fetch('https://api.anthropic.com/v1/messages', {
@@ -87,7 +90,7 @@ export async function handler(event) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2048,
-        system: LEAD_SCORING_SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       })
     });

@@ -45,7 +45,11 @@ export default async function crmEnrichBackgroundHandler(request) {
   }
 
   try {
-    const result = await runCrmEnrichment(id.trim());
+    const catalogFull =
+      typeof payload.catalogFull === 'string' ? payload.catalogFull : '';
+    const result = await runCrmEnrichment(id.trim(), {
+      catalogFull: catalogFull.trim() ? catalogFull : undefined
+    });
     if (!result.ok) {
       console.error(
         'crm-enrich-background upstream error',

@@ -44,7 +44,11 @@ export async function handler(event) {
   try {
     const result = await runCrmNextMail({
       id: String(payload.id).trim(),
-      brief: typeof payload.brief === 'string' ? payload.brief : ''
+      brief: typeof payload.brief === 'string' ? payload.brief : '',
+      catalogShort:
+        typeof payload.catalogShort === 'string' && payload.catalogShort.trim()
+          ? payload.catalogShort
+          : undefined
     });
     if (!result.ok) {
       return json(
