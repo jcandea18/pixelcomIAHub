@@ -1,6 +1,7 @@
 import {
   insertGenerated,
-  listGenerated
+  listGenerated,
+  getGeneratedById
 } from '../../lib/generatedRepo.js';
 
 function json(statusCode, body, extra = {}) {
@@ -31,6 +32,14 @@ export async function handler(event) {
 
   try {
     if (event.httpMethod === 'GET') {
+      const singleId = event.queryStringParameters?.id;
+      if (singleId && String(singleId).trim()) {
+        const item = await getGeneratedById(String(singleId).trim());
+        if (!item) {
+          return json(404, { error: { message: 'No encontrado.' } });
+        }
+        return json(200, { item });
+      }
       const kind = event.queryStringParameters?.kind;
       const limit = event.queryStringParameters?.limit;
       const items = await listGenerated({

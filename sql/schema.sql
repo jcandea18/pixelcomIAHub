@@ -35,3 +35,21 @@ CREATE TABLE IF NOT EXISTS generated_contents (
 );
 
 CREATE INDEX IF NOT EXISTS idx_generated_kind_created ON generated_contents (kind, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS crm_contacts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  nombre TEXT NOT NULL,
+  empresa TEXT NOT NULL,
+  email TEXT,
+  telefono TEXT,
+  pais TEXT,
+  web TEXT,
+  notas TEXT,
+  enrichment_json JSONB,
+  enriched_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_crm_updated ON crm_contacts (updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_crm_empresa ON crm_contacts (empresa);

@@ -133,7 +133,7 @@
   }
 
   /* Main */
-  .main { flex: 1; padding: 32px 40px; overflow-y: auto; max-width: 900px; }
+  .main { flex: 1; padding: 32px 40px; overflow-y: auto; max-width: 1040px; }
 
   /* Module header */
   .module-header { margin-bottom: 28px; }
@@ -605,6 +605,99 @@
   .ls-points-neg { font-weight: 600; color: var(--warn); }
 
   .card.ls-score-panel { margin-top: 20px; }
+
+  /* Histórico */
+  .hist-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .hist-filter-btn {
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .hist-filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .hist-filter-btn.on { background: var(--accent-light); border-color: var(--accent); color: var(--accent-dark); font-weight: 600; }
+  .hist-row {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .hist-row-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+  }
+  .hist-row-head:hover { background: #FAFBFC; }
+  .hist-type-pill {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    background: var(--accent-light);
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 4px;
+  }
+  .hist-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .hist-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .hist-date { font-size: 11px; color: var(--text-faint); white-space: nowrap; }
+  .hist-body { border-top: 1px solid var(--border); padding: 14px; background: var(--bg); font-size: 12px; }
+  .hist-snippet { color: var(--text-muted); line-height: 1.5; margin-bottom: 10px; }
+  .hist-preview-box {
+    background: #0B1220;
+    border-radius: 8px;
+    padding: 0;
+    margin-top: 8px;
+    max-height: 360px;
+    overflow: auto;
+  }
+  .hist-preview-box iframe { width: 100%; min-height: 240px; border: none; }
+
+  /* CRM */
+  .crm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .crm-table th, .crm-table td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .crm-table th { color: var(--text-faint); font-weight: 500; text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; }
+  .crm-table tr:hover td { background: #FAFBFC; }
+  .crm-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .crm-enrich-box {
+    margin-top: 10px;
+    padding: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+  }
+  .crm-enrich-kv { margin-bottom: 8px; }
+  .crm-enrich-kv strong { color: var(--text-muted); display: block; font-size: 10px; text-transform: uppercase; margin-bottom: 2px; }
+  .crm-enrich-list { margin: 0; padding-left: 16px; }
+  .crm-enrich-list li { margin-bottom: 4px; }
+  .crm-badge-enc { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+  .crm-enc-alto { background: #D1FAE5; color: #047857; }
+  .crm-enc-medio { background: #FEF3C7; color: #B45309; }
+  .crm-enc-bajo { background: #F1F5F9; color: #64748B; }
 </style>
 </head>
 <body>
@@ -1865,13 +1958,706 @@ function Module4() {
 }
 
 // ══════════════════════════════════════════════════════════════
+// MÓDULO — Histórico (generados + pipeline)
+// ══════════════════════════════════════════════════════════════
+function formatHistDate(ts) {
+  if (ts == null) return '—';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function ModuleHistoric() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [openId, setOpenId] = useState(null);
+  const [detailHtml, setDetailHtml] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    setErr('');
+    try {
+      const res = await fetch('/api/activity?limit=300');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error?.message || `Error ${res.status}`);
+      }
+      setItems(Array.isArray(data.items) ? data.items : []);
+    } catch (e) {
+      setErr(e.message || 'No se pudo cargar el histórico.');
+      setItems([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (filter === 'all') return items;
+    if (filter === 'generated') return items.filter((i) => i.feedType === 'generated');
+    if (filter === 'pipeline_lead') {
+      return items.filter((i) => i.feedType === 'pipeline_lead');
+    }
+    return items.filter(
+      (i) => i.feedType === 'generated' && i.subtype === filter
+    );
+  }, [items, filter]);
+
+  const toggle = async (row) => {
+    const rid = `${row.feedType}-${row.id}`;
+    if (openId === rid) {
+      setOpenId(null);
+      setDetailHtml(null);
+      setDetailLoading(false);
+      return;
+    }
+    setOpenId(rid);
+    setDetailHtml(null);
+    if (row.feedType === 'generated') {
+      setDetailLoading(true);
+      try {
+        const res = await fetch(
+          `/api/generated?id=${encodeURIComponent(row.id)}`
+        );
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.item && data.item.bodyHtml) {
+          setDetailHtml(data.item.bodyHtml);
+        }
+      } catch (_) {
+        /* vacío */
+      }
+      setDetailLoading(false);
+    } else {
+      setDetailLoading(false);
+    }
+  };
+
+  const filterBtns = [
+    { id: 'all', label: 'Todo' },
+    { id: 'generated', label: 'Generado' },
+    { id: 'prospect_email', label: 'Emails' },
+    { id: 'seo', label: 'SEO' },
+    { id: 'newsletter', label: 'Newsletter' },
+    { id: 'pipeline_lead', label: 'Scoring / pipeline' }
+  ];
+
+  return (
+    <div>
+      <div className="module-header">
+        <div className="module-tag">DATOS · ACTIVIDAD</div>
+        <div className="module-title">Histórico compartido</div>
+        <div className="module-desc">
+          Todos los emails, newsletters, contenidos SEO guardados en la base de datos,
+          más los leads añadidos al pipeline desde el scoring. Al desplegar una fila
+          de tipo generado se carga la vista previa HTML completa.
+        </div>
+      </div>
+
+      <div className="hist-filters">
+        {filterBtns.map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            className={`hist-filter-btn ${filter === b.id ? 'on' : ''}`}
+            onClick={() => setFilter(b.id)}
+          >
+            {b.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ marginLeft: 'auto' }}
+          onClick={load}
+          disabled={loading}
+        >
+          Actualizar
+        </button>
+      </div>
+
+      {loading && (
+        <div className="card">
+          <div className="loading">
+            <div className="spinner" />
+            Cargando actividad…
+          </div>
+        </div>
+      )}
+      {!loading && err && (
+        <div className="card ls-error-card">
+          <div className="card-title ls-error-title">Sin datos o error</div>
+          <div className="ls-error-text">{err}</div>
+          <p style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)' }}>
+            Comprueba <code>DATABASE_URL</code> en local o Neon enlazado en Netlify.
+          </p>
+        </div>
+      )}
+      {!loading && !err && filtered.length === 0 && (
+        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+          No hay entradas con este filtro. Genera contenido con la API configurada y
+          guarda leads en el pipeline.
+        </p>
+      )}
+      {!loading &&
+        filtered.map((row) => {
+          const rid = `${row.feedType}-${row.id}`;
+          const open = openId === rid;
+          const typeLabel =
+            row.feedType === 'generated'
+              ? row.subtype === 'prospect_email'
+                ? 'Email'
+                : row.subtype === 'seo'
+                  ? 'SEO'
+                  : row.subtype === 'newsletter'
+                    ? 'Newsletter'
+                    : row.subtype
+              : 'Scoring';
+          return (
+            <div key={rid} className="hist-row">
+              <div className="hist-row-head" onClick={() => toggle(row)}>
+                <div>
+                  <div className="hist-type-pill">{typeLabel}</div>
+                  <div className="hist-title">{row.title}</div>
+                  <div className="hist-sub">{row.subtitle}</div>
+                </div>
+                <div className="hist-date">{formatHistDate(row.createdAt)}</div>
+              </div>
+              {open && (
+                <div className="hist-body">
+                  {row.snippet && (
+                    <div className="hist-snippet">{row.snippet}</div>
+                  )}
+                  {row.feedType === 'generated' &&
+                    (detailLoading ? (
+                      <p style={{ color: 'var(--text-muted)' }}>
+                        Cargando vista previa…
+                      </p>
+                    ) : (
+                      detailHtml && (
+                        <div className="hist-preview-box">
+                          <iframe
+                            title="Vista previa histórico"
+                            sandbox
+                            srcDoc={wrapPreviewDoc(detailHtml)}
+                          />
+                        </div>
+                      )
+                    ))}
+                  {row.feedType === 'pipeline_lead' && row.result && (
+                    <div>
+                      <p style={{ marginBottom: 10 }}>
+                        <strong>Score:</strong> {row.result.score} ·{' '}
+                        <strong>Tier:</strong> {row.result.tier} (
+                        {row.result.tier_label})
+                      </p>
+                      <div className="ls-approach">
+                        <h4>Enfoque recomendado</h4>
+                        {row.result.recommended_approach}
+                      </div>
+                      {(row.result.priority_actions || []).length > 0 && (
+                        <div style={{ marginTop: 12 }}>
+                          <strong>Acciones</strong>
+                          <ul className="crm-enrich-list">
+                            {(row.result.priority_actions || []).map((a, i) => (
+                              <li key={i}>{a}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO — CRM + enriquecimiento IA
+// ══════════════════════════════════════════════════════════════
+function ModuleCRM() {
+  const [contacts, setContacts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+  const [form, setForm] = useState({
+    nombre: '',
+    empresa: '',
+    email: '',
+    telefono: '',
+    pais: '',
+    web: '',
+    notas: ''
+  });
+  const [editId, setEditId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [expandId, setExpandId] = useState(null);
+  const [enrichingId, setEnrichingId] = useState(null);
+
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const load = async () => {
+    setLoading(true);
+    setErr('');
+    try {
+      const res = await fetch('/api/crm');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error?.message || `Error ${res.status}`);
+      }
+      setContacts(Array.isArray(data.contacts) ? data.contacts : []);
+    } catch (e) {
+      setErr(e.message || 'No se pudo cargar el CRM.');
+      setContacts([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const resetForm = () => {
+    setForm({
+      nombre: '',
+      empresa: '',
+      email: '',
+      telefono: '',
+      pais: '',
+      web: '',
+      notas: ''
+    });
+    setEditId(null);
+  };
+
+  const save = async () => {
+    if (!form.nombre.trim() || !form.empresa.trim()) {
+      setErr('Nombre y empresa son obligatorios.');
+      return;
+    }
+    setSaving(true);
+    setErr('');
+    try {
+      const method = editId ? 'PUT' : 'POST';
+      const body = editId ? { ...form, id: editId } : { ...form };
+      const res = await fetch('/api/crm', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error?.message || `Error ${res.status}`);
+      }
+      if (data.entry) {
+        if (editId) {
+          setContacts((prev) =>
+            prev.map((c) => (c.id === data.entry.id ? data.entry : c))
+          );
+        } else {
+          setContacts((prev) => [data.entry, ...prev]);
+          logActivity('crm', 'create', { id: data.entry.id });
+        }
+        resetForm();
+      }
+    } catch (e) {
+      setErr(e.message);
+    }
+    setSaving(false);
+  };
+
+  const loadEdit = (c) => {
+    setEditId(c.id);
+    setForm({
+      nombre: c.nombre || '',
+      empresa: c.empresa || '',
+      email: c.email || '',
+      telefono: c.telefono || '',
+      pais: c.pais || '',
+      web: c.web || '',
+      notas: c.notas || ''
+    });
+  };
+
+  const remove = async (id) => {
+    if (!window.confirm('¿Eliminar este contacto del CRM?')) return;
+    try {
+      const res = await fetch(`/api/crm?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error?.message || `Error ${res.status}`);
+      }
+      setContacts((prev) => prev.filter((c) => c.id !== id));
+      if (editId === id) resetForm();
+      logActivity('crm', 'delete', { id });
+    } catch (e) {
+      setErr(e.message);
+    }
+  };
+
+  const enrich = async (id) => {
+    setEnrichingId(id);
+    setErr('');
+    try {
+      const res = await fetch('/api/crm/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error?.message || `Error ${res.status}`);
+      }
+      if (data.entry) {
+        setContacts((prev) =>
+          prev.map((c) => (c.id === data.entry.id ? data.entry : c))
+        );
+        setExpandId(id);
+        logActivity('crm', 'enrich', { id });
+      }
+    } catch (e) {
+      setErr(e.message);
+    }
+    setEnrichingId(null);
+  };
+
+  const encClass = (v) => {
+    if (v === 'alto') return 'crm-enc-alto';
+    if (v === 'bajo') return 'crm-enc-bajo';
+    return 'crm-enc-medio';
+  };
+
+  const renderEnrichment = (en) => {
+    if (!en || typeof en !== 'object') return null;
+    return (
+      <div className="crm-enrich-box">
+        <div style={{ marginBottom: 10 }}>
+          <span
+            className={`crm-badge-enc ${encClass(en.encaje_pixelcom)}`}
+          >
+            Encaje Pixelcom: {en.encaje_pixelcom || '—'}
+          </span>
+        </div>
+        <div className="crm-enrich-kv">
+          <strong>Resumen</strong>
+          {en.resumen_contacto}
+        </div>
+        <div className="crm-enrich-kv">
+          <strong>Hipótesis empresa</strong>
+          {en.hipotesis_empresa}
+        </div>
+        <div className="crm-enrich-kv">
+          <strong>Hipótesis rol</strong>
+          {en.hipotesis_rol || '—'}
+        </div>
+        <div className="crm-enrich-kv">
+          <strong>Razón de encaje</strong>
+          {en.razon_encaje || '—'}
+        </div>
+        {(en.angulos_comerciales || []).length > 0 && (
+          <div className="crm-enrich-kv">
+            <strong>Ángulos comerciales</strong>
+            <ul className="crm-enrich-list">
+              {(en.angulos_comerciales || []).map((x, i) => (
+                <li key={i}>{x}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {(en.preguntas_descubrimiento || []).length > 0 && (
+          <div className="crm-enrich-kv">
+            <strong>Preguntas de descubrimiento</strong>
+            <ul className="crm-enrich-list">
+              {(en.preguntas_descubrimiento || []).map((x, i) => (
+                <li key={i}>{x}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {(en.riesgos_dudas || []).length > 0 && (
+          <div className="crm-enrich-kv">
+            <strong>Riesgos / dudas</strong>
+            <ul className="crm-enrich-list">
+              {(en.riesgos_dudas || []).map((x, i) => (
+                <li key={i}>{x}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="crm-enrich-kv">
+          <strong>Siguiente paso</strong>
+          {en.siguiente_paso}
+        </div>
+        {(en.datos_a_verificar || []).length > 0 && (
+          <div className="crm-enrich-kv">
+            <strong>Datos a verificar</strong>
+            <ul className="crm-enrich-list">
+              {(en.datos_a_verificar || []).map((x, i) => (
+                <li key={i}>{x}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {en.disclaimer && (
+          <p
+            style={{
+              marginTop: 12,
+              fontSize: 11,
+              color: 'var(--text-faint)',
+              fontStyle: 'italic'
+            }}
+          >
+            {en.disclaimer}
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <div className="module-header">
+        <div className="module-tag">COMERCIAL · CRM</div>
+        <div className="module-title">CRM de clientes</div>
+        <div className="module-desc">
+          Alta de contactos y enriquecimiento con Claude a partir del nombre, empresa y
+          notas. La IA no navega por internet: infiere contexto útil para comercial y debe
+          verificarse antes de usarlo como dato factual.
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">
+          {editId ? 'Editar contacto' : 'Nuevo contacto'}
+        </div>
+        <div className="form-grid">
+          <div className="field">
+            <label>Nombre *</label>
+            <input
+              value={form.nombre}
+              onChange={(e) => set('nombre', e.target.value)}
+              placeholder="Nombre del contacto"
+            />
+          </div>
+          <div className="field">
+            <label>Empresa *</label>
+            <input
+              value={form.empresa}
+              onChange={(e) => set('empresa', e.target.value)}
+              placeholder="Razón social o marca"
+            />
+          </div>
+          <div className="field">
+            <label>Email</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => set('email', e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label>Teléfono</label>
+            <input
+              value={form.telefono}
+              onChange={(e) => set('telefono', e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label>País</label>
+            <input
+              value={form.pais}
+              onChange={(e) => set('pais', e.target.value)}
+              placeholder="Francia, España…"
+            />
+          </div>
+          <div className="field">
+            <label>Web</label>
+            <input
+              value={form.web}
+              onChange={(e) => set('web', e.target.value)}
+              placeholder="https://…"
+            />
+          </div>
+          <div className="field" style={{ gridColumn: 'span 2' }}>
+            <label>Notas (contexto para la IA)</label>
+            <textarea
+              value={form.notas}
+              onChange={(e) => set('notas', e.target.value)}
+              placeholder="Sector, feria donde los conociste, producto de interés…"
+              style={{ minHeight: 88 }}
+            />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={save}
+            disabled={saving}
+          >
+            {saving ? 'Guardando…' : editId ? 'Actualizar' : 'Dar de alta'}
+          </button>
+          {editId && (
+            <button type="button" className="btn btn-secondary" onClick={resetForm}>
+              Cancelar edición
+            </button>
+          )}
+        </div>
+      </div>
+
+      {err && (
+        <div className="card ls-error-card" style={{ marginBottom: 16 }}>
+          <div className="ls-error-text">{err}</div>
+        </div>
+      )}
+
+      {loading && (
+        <div className="card">
+          <div className="loading">
+            <div className="spinner" />
+            Cargando contactos…
+          </div>
+        </div>
+      )}
+      {!loading && (
+        <div className="card">
+          <div className="card-title">Contactos ({contacts.length})</div>
+          {contacts.length === 0 ? (
+            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              Aún no hay contactos. Con la base de datos conectada, aparecerán aquí.
+            </p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="crm-table">
+                <thead>
+                  <tr>
+                    <th>Empresa</th>
+                    <th>Contacto</th>
+                    <th>País</th>
+                    <th>IA</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {contacts.map((c) => (
+                    <React.Fragment key={c.id}>
+                      <tr>
+                        <td>{c.empresa}</td>
+                        <td>{c.nombre}</td>
+                        <td>{c.pais || '—'}</td>
+                        <td>
+                          {c.enrichment ? (
+                            <span
+                              className={`crm-badge-enc ${encClass(
+                                c.enrichment.encaje_pixelcom
+                              )}`}
+                            >
+                              {c.enrichment.encaje_pixelcom || 'ok'}
+                            </span>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td>
+                          <div className="crm-actions">
+                            <button
+                              type="button"
+                              className="ls-link-btn"
+                              onClick={() =>
+                                setExpandId((x) => (x === c.id ? null : c.id))
+                              }
+                            >
+                              {expandId === c.id ? 'Ocultar' : 'Ver'}
+                            </button>
+                            <button
+                              type="button"
+                              className="ls-link-btn"
+                              onClick={() => loadEdit(c)}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              className="ls-link-btn"
+                              onClick={() => enrich(c.id)}
+                              disabled={enrichingId === c.id}
+                            >
+                              {enrichingId === c.id ? 'IA…' : 'Enriquecer IA'}
+                            </button>
+                            <button
+                              type="button"
+                              className="ls-link-btn"
+                              onClick={() => remove(c.id)}
+                              style={{ color: 'var(--warn)' }}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {expandId === c.id && (
+                        <tr>
+                          <td colSpan={5} style={{ background: 'var(--bg)', verticalAlign: 'top' }}>
+                            <div style={{ padding: '8px 0 16px' }}>
+                              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                                <strong>Email:</strong> {c.email || '—'} ·{' '}
+                                <strong>Tel:</strong> {c.telefono || '—'} ·{' '}
+                                <strong>Web:</strong> {c.web || '—'}
+                              </div>
+                              {c.notas && (
+                                <div style={{ fontSize: 12, marginBottom: 10 }}>
+                                  <strong>Notas:</strong> {c.notas}
+                                </div>
+                              )}
+                              {renderEnrichment(c.enrichment)}
+                              {!c.enrichment && (
+                                <p style={{ fontSize: 12, color: 'var(--text-faint)' }}>
+                                  Pulsa «Enriquecer IA» para generar perfil comercial inferido.
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ marginTop: 14 }}
+            onClick={load}
+          >
+            Refrescar lista
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
 // APP SHELL
 // ══════════════════════════════════════════════════════════════
 const MODULES = [
   { id: 'email', label: 'Email prospecto', group: 'Comercial' },
   { id: 'scoring', label: 'Scoring leads', group: 'Comercial' },
+  { id: 'crm', label: 'CRM', group: 'Comercial' },
   { id: 'contenidos', label: 'Contenidos SEO', group: 'Marketing' },
   { id: 'newsletter', label: 'Newsletter', group: 'Marketing' },
+  { id: 'historico', label: 'Histórico', group: 'Datos' }
 ];
 
 function App() {
@@ -1923,8 +2709,10 @@ function App() {
         <div className="main">
           {active === 'email' && <Module1 apiKey={apiKey} />}
           {active === 'scoring' && <Module4 />}
+          {active === 'crm' && <ModuleCRM />}
           {active === 'contenidos' && <Module2 apiKey={apiKey} />}
           {active === 'newsletter' && <Module3 apiKey={apiKey} />}
+          {active === 'historico' && <ModuleHistoric />}
         </div>
       </div>
     </div>

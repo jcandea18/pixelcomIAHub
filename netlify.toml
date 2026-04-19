@@ -43,3 +43,24 @@
   status = 200
   force = true
   methods = ["GET", "POST", "OPTIONS"]
+
+[[redirects]]
+  from = "/api/activity"
+  to = "/.netlify/functions/activity"
+  status = 200
+  force = true
+  methods = ["GET", "OPTIONS"]
+
+[[redirects]]
+  from = "/api/crm/enrich"
+  to = "/.netlify/functions/crm-enrich"
+  status = 200
+  force = true
+  methods = ["POST", "OPTIONS"]
+
+[[redirects]]
+  from = "/api/crm"
+  to = "/.netlify/functions/crm"
+  status = 200
+  force = true
+  methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
