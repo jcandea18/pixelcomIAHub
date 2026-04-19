@@ -9,7 +9,7 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -32,7 +32,7 @@
   }
 
   body {
-    font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -729,6 +729,12 @@ const SIGNATURE_HINT = {
   holandes: 'Sluit altijd af als „Het Pixelcom verkoopteam · www.pixelcom.es“.',
 };
 
+/** Alineado con lib/pixelcomContext.js — web pixelcom.es (Motorsport, Rental, Marcadores) */
+const PIXELCOM_CATALOGO_PARA_IA =
+  'Catálogo de referencia: Motorsport (circuitos: control, luces salida, paneles, pit lane; karting competición: software, 4Flags, paneles, contadores; campo de pruebas; otros motor: LED, contadores, pantallas). ' +
+  'Go-Kart Rental: SW cronometraje/TV/TPV/Verifactu; HW kart (remoto, parada, transponder, displays) y pista (banderas, semáforos, contadores, videomarcadores, podio, reducción velocidad amarilla). ' +
+  'Marcadores: videomarcadores, fútbol, pádel, multideporte. Apps Pixelcom y PKC. Servicios online, in situ, asesoramiento, franquicias. Grafismo TV. Modelo All-in-One HW+SW+soporte. No inventes productos fuera de estas líneas.';
+
 // ── Anthropic API call ──────────────────────────────────────────
 async function callClaude(apiKey, systemPrompt, userPrompt) {
   const res = await fetch('/api/claude', {
@@ -789,7 +795,7 @@ function parseEmailJson(raw) {
 
 function wrapPreviewDoc(bodyHtml) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; font-size: 15px; line-height: 1.55; color: #0f172a; padding: 20px; max-width: 720px; margin: 0 auto; background: #fff; }
+    body { font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 15px; line-height: 1.55; color: #0f172a; padding: 20px; max-width: 720px; margin: 0 auto; background: #fff; }
     h1,h2,h3 { line-height: 1.25; }
     a { color: #c41e24; }
   </style></head><body>${bodyHtml}</body></html>`;
@@ -1028,7 +1034,9 @@ function Module1({ apiKey }) {
   const generate = async () => {
     if (!form.nombre || !form.empresa) { setError('Nombre y empresa son obligatorios.'); return; }
     setLoading(true); setError(''); setResult(''); setWebhookError(''); setWebhookOk(false);
-    const system = `Eres el asistente comercial de Pixelcom Ingeniería, empresa española especializada en sistemas de cronometraje y señalización para karting y circuitos de velocidad (marcas Pixeltiming y Pixelmotorsport). Redactas correos electrónicos profesionales en ${langLabel}. El tono es cercano pero técnico, confiado, breve y orientado a resultados. Evita plantillas genéricas. ${sig}`;
+    const system = `Eres el asistente comercial de Pixelcom Ingeniería, empresa española especializada en sistemas de cronometraje y señalización para karting y circuitos de velocidad (marcas Pixeltiming y Pixelmotorsport). Redactas correos electrónicos profesionales en ${langLabel}. El tono es cercano pero técnico, confiado, breve y orientado a resultados. Evita plantillas genéricas. ${sig}
+
+${PIXELCOM_CATALOGO_PARA_IA}`;
     const user = `Redacta un email de primer contacto en ${langLabel} para:
 - Nombre contacto: ${form.nombre}
 - Empresa: ${form.empresa}
@@ -1223,7 +1231,9 @@ function Module2({ apiKey }) {
     setLoading(true); setError(''); setResult('');
 
     const idiomaLabel = outputLanguageLabel(outputLanguage);
-    const system = `Eres experto en marketing de contenidos B2B para el sector de tecnología deportiva. Trabajas para Pixelcom Ingeniería, empresa española líder en sistemas de cronometraje para karting (Pixeltiming) y señalización para circuitos de velocidad (Pixelmotorsport). Redactas contenido en ${idiomaLabel} de alta calidad, optimizado para SEO, con tono técnico pero accesible. El diferencial de Pixelcom es su modelo All-in-One: hardware + software + soporte integrados, sin cuotas mensuales.`;
+    const system = `Eres experto en marketing de contenidos B2B para el sector de tecnología deportiva. Trabajas para Pixelcom Ingeniería, empresa española líder en sistemas de cronometraje para karting (Pixeltiming) y señalización para circuitos de velocidad (Pixelmotorsport). Redactas contenido en ${idiomaLabel} de alta calidad, optimizado para SEO, con tono técnico pero accesible. El diferencial de Pixelcom es su modelo All-in-One: hardware + software + soporte integrados, sin cuotas mensuales.
+
+${PIXELCOM_CATALOGO_PARA_IA}`;
 
     const tipoLabel = tipos.find(t=>t.value===form.tipo)?.label;
     const publicoLabel = publicos.find(p=>p.value===form.publico)?.label;
@@ -1376,7 +1386,9 @@ function Module3({ apiKey }) {
     const ctaLabel = ctas.find(c=>c.value===cta)?.label;
     const idiomaLabel = outputLanguageLabel(outputLanguage);
 
-    const system = `Eres experto en email marketing B2B para Pixelcom Ingeniería, empresa española de tecnología deportiva (Pixeltiming para karting, Pixelmotorsport para circuitos de velocidad). Redactas newsletters profesionales en ${idiomaLabel} que mezclan novedades técnicas, noticias del sector y llamadas a la acción claras. Tono cercano, técnico y orientado a negocio. Nunca uses jerga de marketing genérica.`;
+    const system = `Eres experto en email marketing B2B para Pixelcom Ingeniería, empresa española de tecnología deportiva (Pixeltiming para karting, Pixelmotorsport para circuitos de velocidad). Redactas newsletters profesionales en ${idiomaLabel} que mezclan novedades técnicas, noticias del sector y llamadas a la acción claras. Tono cercano, técnico y orientado a negocio. Nunca uses jerga de marketing genérica.
+
+${PIXELCOM_CATALOGO_PARA_IA}`;
 
     const user = `Redacta una newsletter mensual en ${idiomaLabel} para el siguiente segmento: ${segLabels}.
 
@@ -2183,6 +2195,22 @@ function ModuleHistoric() {
 // ══════════════════════════════════════════════════════════════
 // MÓDULO — CRM + enriquecimiento IA
 // ══════════════════════════════════════════════════════════════
+function inferOutputLangFromPaisForCrm(pais) {
+  const p = String(pais || '').toLowerCase();
+  if (/francia|france|\bfr\b/.test(p)) return 'frances';
+  if (/reino unido|uk|brit|inglaterra|england|scotland|wales/.test(p)) return 'ingles';
+  if (/usa|estados unidos|united states|\bus\b/.test(p)) return 'ingles';
+  if (/belgica|belgium|belgique/.test(p)) return 'frances';
+  if (/suiza|switzerland|schweiz/.test(p)) return 'aleman';
+  if (/luxembourg|luxemburgo/.test(p)) return 'frances';
+  if (/alemania|germany|deutschland/.test(p)) return 'aleman';
+  if (/italia|italy|italie/.test(p)) return 'italiano';
+  if (/portugal/.test(p)) return 'portugues';
+  if (/holanda|netherlands|países bajos|nederland/.test(p)) return 'holandes';
+  if (/españa|spain|espagne/.test(p)) return 'espanol';
+  return 'espanol';
+}
+
 function ModuleCRM() {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2200,6 +2228,9 @@ function ModuleCRM() {
   const [saving, setSaving] = useState(false);
   const [expandId, setExpandId] = useState(null);
   const [enrichingId, setEnrichingId] = useState(null);
+  const [mailBriefById, setMailBriefById] = useState({});
+  const [nextMailLoadingId, setNextMailLoadingId] = useState(null);
+  const [nextMailTextById, setNextMailTextById] = useState({});
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -2315,19 +2346,79 @@ function ModuleCRM() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error?.message || `Error ${res.status}`);
+        const msg =
+          data.error?.message ||
+          (typeof data.error === 'string' ? data.error : null) ||
+          `Error ${res.status}`;
+        throw new Error(msg);
       }
       if (data.entry) {
         setContacts((prev) =>
           prev.map((c) => (c.id === data.entry.id ? data.entry : c))
         );
         setExpandId(id);
-        logActivity('crm', 'enrich', { id });
+        logActivity('crm', 'enrich', {
+          id,
+          webSources: data.webSearch?.sourcesCount
+        });
       }
     } catch (e) {
       setErr(e.message);
     }
     setEnrichingId(null);
+  };
+
+  const generateNextMail = async (c) => {
+    setNextMailLoadingId(c.id);
+    setErr('');
+    try {
+      const res = await fetch('/api/crm/next-mail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: c.id,
+          brief: mailBriefById[c.id] || ''
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          data.error?.message ||
+          (typeof data.error === 'string' ? data.error : null) ||
+          `Error ${res.status}`;
+        throw new Error(msg);
+      }
+      const raw = data.text || '';
+      setNextMailTextById((prev) => ({ ...prev, [c.id]: raw }));
+      const parsed = parseEmailJson(raw);
+      const lang =
+        data.outputLanguage || inferOutputLangFromPaisForCrm(c.pais);
+      if (parsed) {
+        persistGenerated({
+          kind: 'prospect_email',
+          outputLanguage: lang,
+          input: {
+            tipo: 'crm_siguiente_mail',
+            crm_contact_id: c.id,
+            nombre: c.nombre,
+            empresa: c.empresa,
+            brief: mailBriefById[c.id] || ''
+          },
+          bodyHtml: parsed.html,
+          bodyPlain: parsed.text,
+          subject: parsed.subject
+        });
+      }
+      logActivity('crm', 'next_mail', { id: c.id });
+    } catch (e) {
+      setErr(e.message || 'Error al generar el correo.');
+      setNextMailTextById((prev) => {
+        const next = { ...prev };
+        delete next[c.id];
+        return next;
+      });
+    }
+    setNextMailLoadingId(null);
   };
 
   const encClass = (v) => {
@@ -2363,6 +2454,31 @@ function ModuleCRM() {
           <strong>Razón de encaje</strong>
           {en.razon_encaje || '—'}
         </div>
+        {(Array.isArray(en.fuentes_web) && en.fuentes_web.length > 0) && (
+          <div className="crm-enrich-kv">
+            <strong>Fuentes web consultadas</strong>
+            <ul className="crm-enrich-list" style={{ listStyle: 'none', paddingLeft: 0 }}>
+              {(en.fuentes_web || []).map((f, i) => (
+                <li key={i} style={{ marginBottom: 6 }}>
+                  <a
+                    href={f.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'var(--accent)', wordBreak: 'break-all' }}
+                  >
+                    {f.title || f.url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {(Array.isArray(en.web_search_queries) && en.web_search_queries.length > 0) && (
+          <p style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 10 }}>
+            <strong style={{ display: 'block', marginBottom: 4 }}>Consultas enviadas al buscador</strong>
+            {(en.web_search_queries || []).join(' · ')}
+          </p>
+        )}
         {(en.angulos_comerciales || []).length > 0 && (
           <div className="crm-enrich-kv">
             <strong>Ángulos comerciales</strong>
@@ -2429,9 +2545,11 @@ function ModuleCRM() {
         <div className="module-tag">COMERCIAL · CRM</div>
         <div className="module-title">CRM de clientes</div>
         <div className="module-desc">
-          Alta de contactos y enriquecimiento con Claude a partir del nombre, empresa y
-          notas. La IA no navega por internet: infiere contexto útil para comercial y debe
-          verificarse antes de usarlo como dato factual.
+          Alta de contactos, enriquecimiento con búsqueda web (Tavily) y acción{' '}
+          <strong>Próximo mail</strong> para generar seguimientos con Claude; se guardan en el
+          histórico. Configura <code style={{ fontSize: 11 }}>TAVILY_API_KEY</code> y{' '}
+          <code style={{ fontSize: 11 }}>ANTHROPIC_API_KEY</code> en el servidor. Verifica los datos
+          antes de decidir.
         </div>
       </div>
 
@@ -2596,6 +2714,20 @@ function ModuleCRM() {
                             <button
                               type="button"
                               className="ls-link-btn"
+                              onClick={() => {
+                                setExpandId(c.id);
+                                setTimeout(() => {
+                                  document
+                                    .getElementById(`crm-mail-${c.id}`)
+                                    ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                }, 80);
+                              }}
+                            >
+                              Próximo mail
+                            </button>
+                            <button
+                              type="button"
+                              className="ls-link-btn"
                               onClick={() => remove(c.id)}
                               style={{ color: 'var(--warn)' }}
                             >
@@ -2621,9 +2753,54 @@ function ModuleCRM() {
                               {renderEnrichment(c.enrichment)}
                               {!c.enrichment && (
                                 <p style={{ fontSize: 12, color: 'var(--text-faint)' }}>
-                                  Pulsa «Enriquecer IA» para generar perfil comercial inferido.
+                                  Pulsa «Enriquecer IA» tras configurar Tavily + Anthropic en el servidor.
                                 </p>
                               )}
+
+                              <div
+                                id={`crm-mail-${c.id}`}
+                                style={{
+                                  marginTop: 22,
+                                  paddingTop: 18,
+                                  borderTop: '1px solid var(--border)'
+                                }}
+                              >
+                                <div className="card-title">Próximo mail al cliente</div>
+                                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.6 }}>
+                                  Genera un correo de <strong>seguimiento</strong> (no primer contacto en frío)
+                                  usando datos del CRM y, si existe, el enriquecimiento IA. Idioma según país del contacto.
+                                  Se guarda en el histórico como email de prospecto (tipo CRM).
+                                </p>
+                                <div className="field" style={{ marginBottom: 12 }}>
+                                  <label>Brief opcional para este correo</label>
+                                  <textarea
+                                    value={mailBriefById[c.id] || ''}
+                                    onChange={(e) =>
+                                      setMailBriefById((prev) => ({
+                                        ...prev,
+                                        [c.id]: e.target.value
+                                      }))
+                                    }
+                                    placeholder="Ej.: proponer demo Pixeltiming 30 min, mencionar feria donde hablamos…"
+                                    style={{ minHeight: 72 }}
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn btn-primary"
+                                  style={{ marginBottom: 16 }}
+                                  onClick={() => generateNextMail(c)}
+                                  disabled={nextMailLoadingId === c.id}
+                                >
+                                  {nextMailLoadingId === c.id ? 'Generando correo…' : 'Generar próximo mail'}
+                                </button>
+                                <OutputBlock
+                                  result={nextMailTextById[c.id] || ''}
+                                  loading={nextMailLoadingId === c.id}
+                                  error=""
+                                  variant="email"
+                                />
+                              </div>
                             </div>
                           </td>
                         </tr>

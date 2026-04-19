@@ -1,4 +1,4 @@
-import { runCrmEnrichment } from '../../lib/crmEnrichService.js';
+import { runCrmNextMail } from '../../lib/crmNextMailService.js';
 
 function json(statusCode, body, extra = {}) {
   return {
@@ -37,13 +37,15 @@ export async function handler(event) {
     return json(400, { error: { message: 'JSON inválido.' } });
   }
 
-  const id = payload.id;
-  if (!id || typeof id !== 'string') {
+  if (!payload.id || typeof payload.id !== 'string' || !String(payload.id).trim()) {
     return json(400, { error: { message: 'Falta id del contacto.' } });
   }
 
   try {
-    const result = await runCrmEnrichment(id.trim());
+    const result = await runCrmNextMail({
+      id: String(payload.id).trim(),
+      brief: typeof payload.brief === 'string' ? payload.brief : ''
+    });
     if (!result.ok) {
       return json(
         result.status,

@@ -59,6 +59,13 @@
   methods = ["POST", "OPTIONS"]
 
 [[redirects]]
+  from = "/api/crm/next-mail"
+  to = "/.netlify/functions/crm-next-mail"
+  status = 200
+  force = true
+  methods = ["POST", "OPTIONS"]
+
+[[redirects]]
   from = "/api/crm"
   to = "/.netlify/functions/crm"
   status = 200

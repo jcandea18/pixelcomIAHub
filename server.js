@@ -21,17 +21,12 @@ import {
 import { buildActivityFeed } from './lib/activityFeed.js';
 import {
   listCrmContacts,
-  getCrmContact,
   insertCrmContact,
   updateCrmContact,
-  deleteCrmContact,
-  setCrmEnrichment
+  deleteCrmContact
 } from './lib/crmRepo.js';
-import {
-  CRM_ENRICH_SYSTEM_PROMPT,
-  parseCrmEnrichResponse,
-  buildCrmEnrichUserPrompt
-} from './lib/crmEnrichPrompt.js';
+import { runCrmEnrichment } from './lib/crmEnrichService.js';
+import { runCrmNextMail } from './lib/crmNextMailService.js';
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
@@ -457,51 +452,15 @@ app.delete('/api/crm', async (req, res) => {
 
 app.post('/api/crm/enrich', async (req, res) => {
   try {
-    if (!ANTHROPIC_API_KEY) {
-      return res.status(500).json({
-        error: { message: 'Falta ANTHROPIC_API_KEY en el servidor.' }
-      });
-    }
     const id = req.body?.id;
     if (!id || typeof id !== 'string') {
       return res.status(400).json({ error: { message: 'Falta id del contacto.' } });
     }
-    const contact = await getCrmContact(id.trim());
-    if (!contact) {
-      return res.status(404).json({ error: { message: 'Contacto no encontrado.' } });
+    const result = await runCrmEnrichment(id.trim());
+    if (!result.ok) {
+      return res.status(result.status).json(result.payload);
     }
-    const userPrompt = buildCrmEnrichUserPrompt(contact);
-    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2048,
-        system: CRM_ENRICH_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
-    });
-    const data = await upstream.json().catch(() => ({}));
-    if (!upstream.ok) return res.status(upstream.status).json(data);
-
-    const text = data?.content?.[0]?.text ?? '';
-    let enrichment;
-    try {
-      enrichment = parseCrmEnrichResponse(text);
-    } catch (err) {
-      return res.status(502).json({
-        error: {
-          message: err?.message || 'No se pudo interpretar la respuesta.',
-          rawText: text
-        }
-      });
-    }
-    const entry = await setCrmEnrichment(contact.id, enrichment);
-    return res.json({ entry, enrichment });
+    return res.json(result.payload);
   } catch (e) {
     if (e.message === 'NO_DATABASE_URL') {
       return res.status(503).json({
@@ -510,6 +469,34 @@ app.post('/api/crm/enrich', async (req, res) => {
     }
     return res.status(500).json({
       error: { message: e?.message || 'Error en enriquecimiento.' }
+    });
+  }
+});
+
+app.post('/api/crm/next-mail', async (req, res) => {
+  try {
+    const { id, brief } = req.body ?? {};
+    if (!id || typeof id !== 'string') {
+      return res
+        .status(400)
+        .json({ error: { message: 'Falta id del contacto.' } });
+    }
+    const result = await runCrmNextMail({
+      id: id.trim(),
+      brief: typeof brief === 'string' ? brief : ''
+    });
+    if (!result.ok) {
+      return res.status(result.status).json(result.payload);
+    }
+    return res.json(result.payload);
+  } catch (e) {
+    if (e.message === 'NO_DATABASE_URL') {
+      return res.status(503).json({
+        error: { message: 'Base de datos no configurada (DATABASE_URL).' }
+      });
+    }
+    return res.status(500).json({
+      error: { message: e?.message || 'Error al generar el correo.' }
     });
   }
 });
