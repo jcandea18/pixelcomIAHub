@@ -2644,12 +2644,54 @@ function ModuleCRM() {
   const enrich = async (id) => {
     setEnrichingId(id);
     setErr('');
+    const contactBefore = contacts.find((c) => c.id === id);
+    const enrichedBefore =
+      contactBefore?.enrichedAt != null
+        ? Number(contactBefore.enrichedAt)
+        : null;
+
     try {
       const res = await fetch('/api/crm/enrich', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
       });
+
+      /** Netlify Background Function: 202 y trabajo largo en servidor (sin 504) */
+      if (res.status === 202) {
+        const deadline = Date.now() + 5 * 60 * 1000;
+        let done = false;
+        while (Date.now() < deadline && !done) {
+          await new Promise((r) => setTimeout(r, 2500));
+          const res2 = await fetch('/api/crm');
+          const data2 = await res2.json().catch(() => ({}));
+          if (!res2.ok) continue;
+          const entry = (data2.contacts || []).find((c) => c.id === id);
+          if (!entry) continue;
+          const at =
+            entry.enrichedAt != null ? Number(entry.enrichedAt) : null;
+          const isNew =
+            enrichedBefore == null
+              ? at != null
+              : at != null && at > enrichedBefore;
+          if (isNew && entry.enrichment) {
+            setContacts((prev) =>
+              prev.map((c) => (c.id === entry.id ? entry : c))
+            );
+            setExpandId(id);
+            logActivity('crm', 'enrich', { id });
+            done = true;
+          }
+        }
+        if (!done) {
+          setErr(
+            'No se recibió el enriquecimiento a tiempo. Revisa los logs de la función en Netlify o reintenta en unos minutos.'
+          );
+        }
+        setEnrichingId(null);
+        return;
+      }
+
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const msg =

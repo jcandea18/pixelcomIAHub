@@ -51,9 +51,10 @@
   force = true
   methods = ["GET", "OPTIONS"]
 
+# Background: evita 504 por timeout mientras Anthropic hace web_search (varios minutos)
 [[redirects]]
   from = "/api/crm/enrich"
-  to = "/.netlify/functions/crm-enrich"
+  to = "/.netlify/functions/crm-enrich-background"
   status = 200
   force = true
   methods = ["POST", "OPTIONS"]
