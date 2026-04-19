@@ -42,7 +42,7 @@
   to = "/.netlify/functions/generated"
   status = 200
   force = true
-  methods = ["GET", "POST", "OPTIONS"]
+  methods = ["GET", "POST", "PUT", "OPTIONS"]
 
 [[redirects]]
   from = "/api/activity"

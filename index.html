@@ -276,6 +276,55 @@
   .btn-copy:hover { background: rgba(255,255,255,0.12); color: #fff; }
   .btn-copy.copied { color: #5DCAA5; border-color: #5DCAA5; }
 
+  .output-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .output-edit-panel {
+    margin-bottom: 14px;
+    padding: 14px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .output-edit-panel label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .output-edit-panel input,
+  .output-edit-panel textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.45;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: #0f172a;
+    color: #e2e8f0;
+    margin-bottom: 12px;
+  }
+  .output-edit-panel textarea { min-height: 120px; resize: vertical; }
+  .output-save-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .output-save-msg { font-size: 11px; color: #94a3b8; }
+  .output-save-msg.ok { color: #5DCAA5; }
+  .output-save-msg.err { color: #fca5a5; }
+
   /* Loading */
   .loading {
     display: flex;
@@ -681,7 +730,38 @@
   }
   .crm-table th { color: var(--text-faint); font-weight: 500; text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; }
   .crm-table tr:hover td { background: #FAFBFC; }
-  .crm-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .crm-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .crm-action-btn {
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+  .crm-action-btn:hover:not(:disabled) {
+    background: var(--surface2);
+    border-color: var(--accent);
+    color: var(--accent-dark);
+  }
+  .crm-action-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .crm-action-btn.crm-action-danger {
+    color: #B45309;
+    border-color: rgba(180, 83, 9, 0.35);
+  }
+  .crm-action-btn.crm-action-danger:hover:not(:disabled) {
+    background: var(--warn-light);
+    border-color: var(--warn);
+    color: #92400e;
+  }
   .crm-enrich-box {
     margin-top: 10px;
     padding: 12px;
@@ -872,13 +952,45 @@ function logActivity(module, action, meta) {
   }).catch(() => {});
 }
 
-/** Guarda newsletter, email de prospecto o SEO en Neon (ignora errores si no hay DB). */
-function persistGenerated(payload) {
-  fetch('/api/generated', {
-    method: 'POST',
+/** Guarda generado en Neon. Devuelve `entry` (con `id`) o null. */
+async function persistGenerated(payload) {
+  try {
+    const res = await fetch('/api/generated', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return null;
+    return data.entry ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveGeneratedUpdate(id, patch) {
+  const res = await fetch('/api/generated', {
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }).catch(() => {});
+    body: JSON.stringify({ id, ...patch })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error?.message || `Error ${res.status}`);
+  }
+  return data.entry;
+}
+
+function generatedEntryToResult(entry, variant) {
+  if (!entry) return '';
+  if (variant === 'email') {
+    return JSON.stringify({
+      subject: entry.subject || '',
+      html: entry.bodyHtml || '',
+      text: entry.bodyPlain || ''
+    });
+  }
+  return entry.bodyHtml || '';
 }
 
 // ── Copy button ────────────────────────────────────────────────
@@ -897,10 +1009,25 @@ function CopyBtn({ text }) {
   );
 }
 
-// ── Output block (vista previa HTML + pestañas) ─────────────────
-function OutputBlock({ result, loading, error, variant = 'article' }) {
+// ── Output block (vista previa HTML + pestañas + edición guardada en Neon) ─────────────────
+function OutputBlock({
+  result,
+  loading,
+  error,
+  variant = 'article',
+  savedEntryId = null,
+  onPersisted = null
+}) {
   const [tab, setTab] = useState('preview');
   const [htmlCopied, setHtmlCopied] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draftSubj, setDraftSubj] = useState('');
+  const [draftHtmlEmail, setDraftHtmlEmail] = useState('');
+  const [draftPlain, setDraftPlain] = useState('');
+  const [draftArticle, setDraftArticle] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
+  const [saveErr, setSaveErr] = useState('');
 
   const emailPayload = useMemo(() => {
     if (variant !== 'email' || !result) return null;
@@ -920,11 +1047,81 @@ function OutputBlock({ result, loading, error, variant = 'article' }) {
     return stripHtmlTags(coerceContentToHtml(result || ''));
   }, [variant, result, emailPayload]);
 
+  const previewHtmlLive = useMemo(() => {
+    if (editing && variant === 'email') return draftHtmlEmail || '<p></p>';
+    if (editing && variant === 'article') return coerceContentToHtml(draftArticle || '');
+    return htmlSource || '<p></p>';
+  }, [editing, variant, draftHtmlEmail, draftArticle, htmlSource]);
+
+  const previewSrcDocLive = useMemo(
+    () => wrapPreviewDoc(previewHtmlLive || '<p></p>'),
+    [previewHtmlLive]
+  );
+
+  const plainLive = useMemo(() => {
+    if (editing && variant === 'email') return draftPlain;
+    return plainText;
+  }, [editing, variant, draftPlain, plainText]);
+
+  useEffect(() => {
+    setEditing(false);
+    setSaveMsg('');
+    setSaveErr('');
+  }, [result]);
+
   const copyHtml = () => {
-    navigator.clipboard.writeText(htmlSource).then(() => {
+    const src = editing && variant === 'email' ? draftHtmlEmail : editing && variant === 'article' ? coerceContentToHtml(draftArticle) : htmlSource;
+    navigator.clipboard.writeText(src).then(() => {
       setHtmlCopied(true);
       setTimeout(() => setHtmlCopied(false), 2000);
     });
+  };
+
+  const openEdit = () => {
+    if (variant === 'email' && emailPayload) {
+      setDraftSubj(emailPayload.subject || '');
+      setDraftHtmlEmail(emailPayload.html || '');
+      setDraftPlain(emailPayload.text || '');
+    } else if (variant === 'article') {
+      setDraftArticle(result || '');
+    }
+    setEditing(true);
+    setSaveMsg('');
+    setSaveErr('');
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setSaveErr('');
+  };
+
+  const persistSave = async () => {
+    if (!savedEntryId) {
+      setSaveErr('Sin ID en base de datos: el guardado inicial falló (¿Neon / DATABASE_URL?)');
+      return;
+    }
+    setSaving(true);
+    setSaveErr('');
+    setSaveMsg('');
+    try {
+      const patch =
+        variant === 'email'
+          ? {
+              bodyHtml: draftHtmlEmail,
+              bodyPlain: draftPlain,
+              subject: draftSubj
+            }
+          : { bodyHtml: String(draftArticle || '').trim() };
+      const entry = await saveGeneratedUpdate(savedEntryId, patch);
+      if (onPersisted) onPersisted(entry);
+      setEditing(false);
+      setSaveMsg('Guardado.');
+      logActivity('generated', 'update', { id: savedEntryId, variant });
+      setTimeout(() => setSaveMsg(''), 3500);
+    } catch (e) {
+      setSaveErr(e.message || 'Error al guardar.');
+    }
+    setSaving(false);
   };
 
   if (loading) return (
@@ -958,36 +1155,110 @@ function OutputBlock({ result, loading, error, variant = 'article' }) {
     );
   }
 
+  const showEditBtn = variant === 'email' ? !!emailPayload : variant === 'article';
+
   return (
     <div className="output-card">
-      <div className="output-header-row">
-        <div className="output-label">RESULTADO</div>
-        {variant === 'email' && emailPayload?.subject && (
+      <div className="output-toolbar">
+        <div className="output-label" style={{ marginBottom: 0 }}>RESULTADO</div>
+        {variant === 'email' && emailPayload?.subject && !editing && (
           <div className="email-subject-preview">
             <span className="email-subject-label">Asunto del correo</span>
             <span>{emailPayload.subject}</span>
           </div>
         )}
+        {showEditBtn && (
+          <button
+            type="button"
+            className="btn-copy"
+            style={{ marginLeft: 'auto' }}
+            onClick={() => (editing ? cancelEdit() : openEdit())}
+          >
+            {editing ? 'Cerrar edición' : 'Editar'}
+          </button>
+        )}
       </div>
 
-      <div className="output-tabs">
-        <button type="button" className={`output-tab ${tab === 'preview' ? 'active' : ''}`} onClick={() => setTab('preview')}>Vista previa</button>
-        <button type="button" className={`output-tab ${tab === 'html' ? 'active' : ''}`} onClick={() => setTab('html')}>HTML / fuente</button>
-        <button type="button" className={`output-tab ${tab === 'plain' ? 'active' : ''}`} onClick={() => setTab('plain')}>Texto plano</button>
-      </div>
+      {editing && (
+        <div className="output-edit-panel">
+          {variant === 'email' && (
+            <>
+              <label>Asunto</label>
+              <input
+                value={draftSubj}
+                onChange={(e) => setDraftSubj(e.target.value)}
+              />
+              <label>HTML del cuerpo (&lt;article&gt;…)</label>
+              <textarea
+                value={draftHtmlEmail}
+                onChange={(e) => setDraftHtmlEmail(e.target.value)}
+                rows={12}
+              />
+              <label>Texto plano</label>
+              <textarea
+                value={draftPlain}
+                onChange={(e) => setDraftPlain(e.target.value)}
+                rows={8}
+              />
+            </>
+          )}
+          {variant === 'article' && (
+            <>
+              <label>HTML del contenido</label>
+              <textarea
+                value={draftArticle}
+                onChange={(e) => setDraftArticle(e.target.value)}
+                rows={18}
+              />
+            </>
+          )}
+          <div className="output-save-row">
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ fontSize: 12, padding: '8px 16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, cursor: saving ? 'wait' : 'pointer' }}
+              onClick={persistSave}
+              disabled={saving}
+            >
+              {saving ? 'Guardando…' : 'Guardar versión en base de datos'}
+            </button>
+            {!savedEntryId && (
+              <span className="output-save-msg err">
+                Genera de nuevo con la API y BD activa para poder guardar ediciones.
+              </span>
+            )}
+            {saveMsg && <span className="output-save-msg ok">{saveMsg}</span>}
+            {saveErr && <span className="output-save-msg err">{saveErr}</span>}
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <div className="output-label" style={{ marginBottom: 8 }}>Vista previa (borrador)</div>
+            <iframe className="preview-frame" title="Vista previa edición" sandbox srcDoc={previewSrcDocLive} />
+          </div>
+        </div>
+      )}
 
-      {tab === 'preview' && (
-        <iframe className="preview-frame" title="Vista previa" sandbox srcDoc={previewSrcDoc} />
-      )}
-      {tab === 'html' && (
-        <pre className="output-code">{htmlSource}</pre>
-      )}
-      {tab === 'plain' && (
-        <div className="output-text output-plain">{plainText}</div>
+      {!editing && (
+        <>
+          <div className="output-tabs">
+            <button type="button" className={`output-tab ${tab === 'preview' ? 'active' : ''}`} onClick={() => setTab('preview')}>Vista previa</button>
+            <button type="button" className={`output-tab ${tab === 'html' ? 'active' : ''}`} onClick={() => setTab('html')}>HTML / fuente</button>
+            <button type="button" className={`output-tab ${tab === 'plain' ? 'active' : ''}`} onClick={() => setTab('plain')}>Texto plano</button>
+          </div>
+
+          {tab === 'preview' && (
+            <iframe className="preview-frame" title="Vista previa" sandbox srcDoc={previewSrcDoc} />
+          )}
+          {tab === 'html' && (
+            <pre className="output-code">{htmlSource}</pre>
+          )}
+          {tab === 'plain' && (
+            <div className="output-text output-plain">{plainText}</div>
+          )}
+        </>
       )}
 
       <div className="output-actions">
-        <CopyBtn text={plainText} />
+        <CopyBtn text={plainLive} />
         <button type="button" className={`btn-copy ${htmlCopied ? 'copied' : ''}`} onClick={copyHtml}>
           {htmlCopied ? '✓ HTML copiado' : 'Copiar HTML'}
         </button>
@@ -1011,6 +1282,7 @@ function Module1({ apiKey }) {
   const [sending, setSending] = useState(false);
   const [webhookError, setWebhookError] = useState('');
   const [webhookOk, setWebhookOk] = useState(false);
+  const [savedGenId, setSavedGenId] = useState(null);
 
   const emailParsed = useMemo(() => (result ? parseEmailJson(result) : null), [result]);
 
@@ -1033,7 +1305,7 @@ function Module1({ apiKey }) {
 
   const generate = async () => {
     if (!form.nombre || !form.empresa) { setError('Nombre y empresa son obligatorios.'); return; }
-    setLoading(true); setError(''); setResult(''); setWebhookError(''); setWebhookOk(false);
+    setLoading(true); setError(''); setResult(''); setSavedGenId(null); setWebhookError(''); setWebhookOk(false);
     const system = `Eres el asistente comercial de Pixelcom Ingeniería, empresa española especializada en sistemas de cronometraje y señalización para karting y circuitos de velocidad (marcas Pixeltiming y Pixelmotorsport). Redactas correos electrónicos profesionales en ${langLabel}. El tono es cercano pero técnico, confiado, breve y orientado a resultados. Evita plantillas genéricas. ${sig}
 
 ${PIXELCOM_CATALOGO_PARA_IA}`;
@@ -1060,7 +1332,7 @@ Reglas:
       logActivity('email', 'generate', { empresa: form.empresa, outputLanguage });
       const parsed = parseEmailJson(text);
       if (parsed) {
-        persistGenerated({
+        const entry = await persistGenerated({
           kind: 'prospect_email',
           outputLanguage,
           input: { ...form },
@@ -1068,6 +1340,7 @@ Reglas:
           bodyPlain: parsed.text,
           subject: parsed.subject
         });
+        if (entry?.id) setSavedGenId(entry.id);
       }
     } catch(e) { setError(e.message); }
     setLoading(false);
@@ -1182,7 +1455,16 @@ Reglas:
         {loading ? 'Generando...' : 'Generar correo'}
       </button>
 
-      <OutputBlock result={result} loading={loading} error={error} variant="email" />
+      <OutputBlock
+        result={result}
+        loading={loading}
+        error={error}
+        variant="email"
+        savedEntryId={savedGenId}
+        onPersisted={(entry) =>
+          entry && setResult(generatedEntryToResult(entry, 'email'))
+        }
+      />
 
       <div className="card" style={{marginTop:20}}>
         <div className="card-title">Enviar al webhook</div>
@@ -1211,6 +1493,7 @@ function Module2({ apiKey }) {
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [savedGenId, setSavedGenId] = useState(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -1228,7 +1511,7 @@ function Module2({ apiKey }) {
   ];
   const generate = async () => {
     if (!form.tema) { setError('El tema es obligatorio.'); return; }
-    setLoading(true); setError(''); setResult('');
+    setLoading(true); setError(''); setResult(''); setSavedGenId(null);
 
     const idiomaLabel = outputLanguageLabel(outputLanguage);
     const system = `Eres experto en marketing de contenidos B2B para el sector de tecnología deportiva. Trabajas para Pixelcom Ingeniería, empresa española líder en sistemas de cronometraje para karting (Pixeltiming) y señalización para circuitos de velocidad (Pixelmotorsport). Redactas contenido en ${idiomaLabel} de alta calidad, optimizado para SEO, con tono técnico pero accesible. El diferencial de Pixelcom es su modelo All-in-One: hardware + software + soporte integrados, sin cuotas mensuales.
@@ -1260,12 +1543,13 @@ Entrega el resultado ÚNICAMENTE como fragmento HTML (sin markdown, sin bloques 
       const text = await callClaude(apiKey, system, user);
       setResult(text);
       logActivity('contenidos', 'generate', { tema: form.tema, outputLanguage });
-      persistGenerated({
+      const entry = await persistGenerated({
         kind: 'seo',
         outputLanguage,
         input: { ...form },
         bodyHtml: text
       });
+      if (entry?.id) setSavedGenId(entry.id);
     } catch(e) { setError(e.message); }
     setLoading(false);
   };
@@ -1342,7 +1626,16 @@ Entrega el resultado ÚNICAMENTE como fragmento HTML (sin markdown, sin bloques 
         {loading ? 'Generando...' : 'Generar contenido'}
       </button>
 
-      <OutputBlock result={result} loading={loading} error={error} variant="article" />
+      <OutputBlock
+        result={result}
+        loading={loading}
+        error={error}
+        variant="article"
+        savedEntryId={savedGenId}
+        onPersisted={(entry) =>
+          entry && setResult(generatedEntryToResult(entry, 'article'))
+        }
+      />
     </div>
   );
 }
@@ -1359,6 +1652,7 @@ function Module3({ apiKey }) {
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [savedGenId, setSavedGenId] = useState(null);
 
   const allSegmentos = [
     { value: 'timing_fr', label: 'Clientes Pixeltiming — Francia', color: 'teal' },
@@ -1380,7 +1674,7 @@ function Module3({ apiKey }) {
   const generate = async () => {
     if (!temas) { setError('Describe los temas de la newsletter.'); return; }
     if (segmentos.length === 0) { setError('Selecciona al menos un segmento.'); return; }
-    setLoading(true); setError(''); setResult('');
+    setLoading(true); setError(''); setResult(''); setSavedGenId(null);
 
     const segLabels = segmentos.map(s=>allSegmentos.find(a=>a.value===s)?.label).join(', ');
     const ctaLabel = ctas.find(c=>c.value===cta)?.label;
@@ -1414,12 +1708,13 @@ Entrega el resultado ÚNICAMENTE como fragmento HTML (sin markdown, sin bloques 
       const text = await callClaude(apiKey, system, user);
       setResult(text);
       logActivity('newsletter', 'generate', { segmentos, outputLanguage });
-      persistGenerated({
+      const entry = await persistGenerated({
         kind: 'newsletter',
         outputLanguage,
         input: { segmentos, temas, novedad, cta },
         bodyHtml: text
       });
+      if (entry?.id) setSavedGenId(entry.id);
     } catch(e) { setError(e.message); }
     setLoading(false);
   };
@@ -1498,7 +1793,16 @@ Entrega el resultado ÚNICAMENTE como fragmento HTML (sin markdown, sin bloques 
         {loading ? 'Generando...' : 'Generar newsletter'}
       </button>
 
-      <OutputBlock result={result} loading={loading} error={error} variant="article" />
+      <OutputBlock
+        result={result}
+        loading={loading}
+        error={error}
+        variant="article"
+        savedEntryId={savedGenId}
+        onPersisted={(entry) =>
+          entry && setResult(generatedEntryToResult(entry, 'article'))
+        }
+      />
     </div>
   );
 }
@@ -2231,6 +2535,8 @@ function ModuleCRM() {
   const [mailBriefById, setMailBriefById] = useState({});
   const [nextMailLoadingId, setNextMailLoadingId] = useState(null);
   const [nextMailTextById, setNextMailTextById] = useState({});
+  const [nextMailSavedDbIdByContact, setNextMailSavedDbIdByContact] =
+    useState({});
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -2371,6 +2677,7 @@ function ModuleCRM() {
   const generateNextMail = async (c) => {
     setNextMailLoadingId(c.id);
     setErr('');
+    setNextMailSavedDbIdByContact((prev) => ({ ...prev, [c.id]: null }));
     try {
       const res = await fetch('/api/crm/next-mail', {
         method: 'POST',
@@ -2394,7 +2701,7 @@ function ModuleCRM() {
       const lang =
         data.outputLanguage || inferOutputLangFromPaisForCrm(c.pais);
       if (parsed) {
-        persistGenerated({
+        const entry = await persistGenerated({
           kind: 'prospect_email',
           outputLanguage: lang,
           input: {
@@ -2408,10 +2715,17 @@ function ModuleCRM() {
           bodyPlain: parsed.text,
           subject: parsed.subject
         });
+        if (entry?.id) {
+          setNextMailSavedDbIdByContact((prev) => ({
+            ...prev,
+            [c.id]: entry.id
+          }));
+        }
       }
       logActivity('crm', 'next_mail', { id: c.id });
     } catch (e) {
       setErr(e.message || 'Error al generar el correo.');
+      setNextMailSavedDbIdByContact((prev) => ({ ...prev, [c.id]: null }));
       setNextMailTextById((prev) => {
         const next = { ...prev };
         delete next[c.id];
@@ -2454,6 +2768,12 @@ function ModuleCRM() {
           <strong>Razón de encaje</strong>
           {en.razon_encaje || '—'}
         </div>
+        {en.web_search_provider === 'anthropic' && (
+          <p style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 8 }}>
+            Búsqueda web: Anthropic Messages API
+            {en.web_search_tool ? ` · ${en.web_search_tool}` : ''}
+          </p>
+        )}
         {(Array.isArray(en.fuentes_web) && en.fuentes_web.length > 0) && (
           <div className="crm-enrich-kv">
             <strong>Fuentes web consultadas</strong>
@@ -2545,11 +2865,11 @@ function ModuleCRM() {
         <div className="module-tag">COMERCIAL · CRM</div>
         <div className="module-title">CRM de clientes</div>
         <div className="module-desc">
-          Alta de contactos, enriquecimiento con búsqueda web (Tavily) y acción{' '}
-          <strong>Próximo mail</strong> para generar seguimientos con Claude; se guardan en el
-          histórico. Configura <code style={{ fontSize: 11 }}>TAVILY_API_KEY</code> y{' '}
-          <code style={{ fontSize: 11 }}>ANTHROPIC_API_KEY</code> en el servidor. Verifica los datos
-          antes de decidir.
+          Alta de contactos, enriquecimiento con <strong>búsqueda web nativa de Anthropic</strong>{' '}
+          (herramienta <code style={{ fontSize: 11 }}>web_search</code> en la API; debe estar activada
+          en tu cuenta) y acción <strong>Próximo mail</strong>. Configura{' '}
+          <code style={{ fontSize: 11 }}>ANTHROPIC_API_KEY</code> en el servidor. Verifica los datos antes
+          de decidir.
         </div>
       </div>
 
@@ -2662,7 +2982,7 @@ function ModuleCRM() {
                     <th>Contacto</th>
                     <th>País</th>
                     <th>IA</th>
-                    <th />
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2689,7 +3009,7 @@ function ModuleCRM() {
                           <div className="crm-actions">
                             <button
                               type="button"
-                              className="ls-link-btn"
+                              className="crm-action-btn"
                               onClick={() =>
                                 setExpandId((x) => (x === c.id ? null : c.id))
                               }
@@ -2698,14 +3018,14 @@ function ModuleCRM() {
                             </button>
                             <button
                               type="button"
-                              className="ls-link-btn"
+                              className="crm-action-btn"
                               onClick={() => loadEdit(c)}
                             >
                               Editar
                             </button>
                             <button
                               type="button"
-                              className="ls-link-btn"
+                              className="crm-action-btn"
                               onClick={() => enrich(c.id)}
                               disabled={enrichingId === c.id}
                             >
@@ -2713,7 +3033,7 @@ function ModuleCRM() {
                             </button>
                             <button
                               type="button"
-                              className="ls-link-btn"
+                              className="crm-action-btn"
                               onClick={() => {
                                 setExpandId(c.id);
                                 setTimeout(() => {
@@ -2727,9 +3047,8 @@ function ModuleCRM() {
                             </button>
                             <button
                               type="button"
-                              className="ls-link-btn"
+                              className="crm-action-btn crm-action-danger"
                               onClick={() => remove(c.id)}
-                              style={{ color: 'var(--warn)' }}
                             >
                               Eliminar
                             </button>
@@ -2753,7 +3072,7 @@ function ModuleCRM() {
                               {renderEnrichment(c.enrichment)}
                               {!c.enrichment && (
                                 <p style={{ fontSize: 12, color: 'var(--text-faint)' }}>
-                                  Pulsa «Enriquecer IA» tras configurar Tavily + Anthropic en el servidor.
+                                  Pulsa «Enriquecer IA» para buscar en web vía Claude (API con web_search) y generar el perfil.
                                 </p>
                               )}
 
@@ -2799,6 +3118,19 @@ function ModuleCRM() {
                                   loading={nextMailLoadingId === c.id}
                                   error=""
                                   variant="email"
+                                  savedEntryId={
+                                    nextMailSavedDbIdByContact[c.id] ?? null
+                                  }
+                                  onPersisted={(entry) =>
+                                    entry &&
+                                    setNextMailTextById((prev) => ({
+                                      ...prev,
+                                      [c.id]: generatedEntryToResult(
+                                        entry,
+                                        'email'
+                                      )
+                                    }))
+                                  }
                                 />
                               </div>
                             </div>

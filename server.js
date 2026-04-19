@@ -16,7 +16,8 @@ import { insertAppEvent } from './lib/eventsRepo.js';
 import {
   insertGenerated,
   listGenerated,
-  getGeneratedById
+  getGeneratedById,
+  updateGeneratedById
 } from './lib/generatedRepo.js';
 import { buildActivityFeed } from './lib/activityFeed.js';
 import {
@@ -545,6 +546,32 @@ app.post('/api/generated', async (req, res) => {
     }
     if (e.message === 'INVALID_INPUT' || e.message === 'INVALID_BODY') {
       return res.status(400).json({ error: { message: 'Datos incompletos.' } });
+    }
+    return res.status(500).json({ error: { message: e.message } });
+  }
+});
+
+app.put('/api/generated', async (req, res) => {
+  try {
+    const body = req.body ?? {};
+    const id = body.id;
+    if (!id || typeof id !== 'string') {
+      return res.status(400).json({ error: { message: 'Falta id.' } });
+    }
+    const entry = await updateGeneratedById(String(id).trim(), {
+      bodyHtml: body.bodyHtml,
+      bodyPlain: body.bodyPlain,
+      subject: body.subject
+    });
+    if (!entry) {
+      return res.status(404).json({ error: { message: 'No encontrado.' } });
+    }
+    return res.json({ entry });
+  } catch (e) {
+    if (e.message === 'NO_DATABASE_URL') {
+      return res.status(503).json({
+        error: { message: 'Base de datos no configurada (DATABASE_URL).' }
+      });
     }
     return res.status(500).json({ error: { message: e.message } });
   }

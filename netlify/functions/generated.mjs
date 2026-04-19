@@ -1,7 +1,8 @@
 import {
   insertGenerated,
   listGenerated,
-  getGeneratedById
+  getGeneratedById,
+  updateGeneratedById
 } from '../../lib/generatedRepo.js';
 
 function json(statusCode, body, extra = {}) {
@@ -22,7 +23,7 @@ export async function handler(event) {
       statusCode: 204,
       headers: {
         'access-control-allow-origin': '*',
-        'access-control-allow-methods': 'GET, POST, OPTIONS',
+        'access-control-allow-methods': 'GET, POST, PUT, OPTIONS',
         'access-control-allow-headers': 'Content-Type',
         'access-control-max-age': '86400'
       },
@@ -78,6 +79,28 @@ export async function handler(event) {
         bodyPlain: bodyPlain != null ? String(bodyPlain) : null,
         subject: subject != null ? String(subject) : null
       });
+      return json(200, { entry });
+    }
+
+    if (event.httpMethod === 'PUT') {
+      let payload;
+      try {
+        payload = JSON.parse(event.body || '{}');
+      } catch {
+        return json(400, { error: { message: 'JSON inválido.' } });
+      }
+      const id = payload.id;
+      if (!id || typeof id !== 'string') {
+        return json(400, { error: { message: 'Falta id.' } });
+      }
+      const entry = await updateGeneratedById(String(id).trim(), {
+        bodyHtml: payload.bodyHtml,
+        bodyPlain: payload.bodyPlain,
+        subject: payload.subject
+      });
+      if (!entry) {
+        return json(404, { error: { message: 'No encontrado.' } });
+      }
       return json(200, { entry });
     }
 
