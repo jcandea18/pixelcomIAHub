@@ -1483,6 +1483,8 @@ function OutputBlock({
 // ══════════════════════════════════════════════════════════════
 function Module1({ apiKey }) {
   const { catalog } = usePixelcomCatalog();
+  const [crmContacts, setCrmContacts] = useState([]);
+  const [crmPickId, setCrmPickId] = useState('');
   const [outputLanguage, setOutputLanguage] = useState('frances');
   const [form, setForm] = useState({
     nombre: '', empresa: '', emailProspecto: '', pais: 'Francia', tipo: 'nueva_instalacion',
@@ -1499,6 +1501,35 @@ function Module1({ apiKey }) {
   const emailParsed = useMemo(() => (result ? parseEmailJson(result) : null), [result]);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/crm');
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return;
+        if (!cancelled && Array.isArray(data.contacts)) {
+          setCrmContacts(data.contacts);
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const applyCrmPick = (id) => {
+    const c = crmContacts.find((x) => x.id === id);
+    if (!c) return;
+    set('nombre', c.nombre || '');
+    set('empresa', c.empresa || '');
+    if (c.email) set('emailProspecto', c.email);
+    if (c.pais) set('pais', c.pais);
+    if (c.notas) set('contexto', c.notas);
+  };
 
   const tiposInstalacion = [
     { value: 'nueva_instalacion', label: 'Nueva apertura de karting' },
@@ -1609,6 +1640,24 @@ Reglas:
       <div className="card">
         <div className="card-title">Datos del prospecto</div>
         <div className="form-grid">
+          <div className="field" style={{gridColumn:'span 2'}}>
+            <label>Elegir contacto del CRM (opcional)</label>
+            <select
+              value={crmPickId}
+              onChange={(e) => {
+                const v = e.target.value;
+                setCrmPickId(v);
+                if (v) applyCrmPick(v);
+              }}
+            >
+              <option value="">—</option>
+              {crmContacts.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {(c.empresa || '—') + ' · ' + (c.nombre || '—')}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="field" style={{gridColumn:'span 2'}}>
             <label>Idioma de salida del correo</label>
             <select value={outputLanguage} onChange={(e) => setOutputLanguage(e.target.value)}>
@@ -2030,6 +2079,8 @@ function Module4() {
     nombre: '', empresa: '', pais: 'Francia', tipo: 'nueva_karting', producto: 'pixeltiming_completo',
     canal: 'referencia', urgencia: 'lt3', presupuesto: 'gt50', cliente_existente: 'no', notas: ''
   });
+  const [crmContacts, setCrmContacts] = useState([]);
+  const [crmPickId, setCrmPickId] = useState('');
   const [senales_negativas, setSenales] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -2071,6 +2122,34 @@ function Module4() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/crm');
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return;
+        if (!cancelled && Array.isArray(data.contacts)) {
+          setCrmContacts(data.contacts);
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const applyCrmPick = (id) => {
+    const c = crmContacts.find((x) => x.id === id);
+    if (!c) return;
+    set('nombre', c.nombre || '');
+    set('empresa', c.empresa || '');
+    if (c.pais) set('pais', c.pais);
+    if (c.notas) set('notas', c.notas);
+  };
 
   useEffect(() => {
     if (!lastResult) {
@@ -2340,6 +2419,24 @@ function Module4() {
           <div className="card">
             <div className="card-title">Datos del lead</div>
             <div className="form-grid">
+              <div className="field" style={{ gridColumn: 'span 2' }}>
+                <label>Elegir contacto del CRM (opcional)</label>
+                <select
+                  value={crmPickId}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setCrmPickId(v);
+                    if (v) applyCrmPick(v);
+                  }}
+                >
+                  <option value="">—</option>
+                  {crmContacts.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {(c.empresa || '—') + ' · ' + (c.nombre || '—')}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="field"><label>Nombre *</label><input value={form.nombre} onChange={(e) => set('nombre', e.target.value)} /></div>
               <div className="field"><label>Empresa *</label><input value={form.empresa} onChange={(e) => set('empresa', e.target.value)} /></div>
               <div className="field">
