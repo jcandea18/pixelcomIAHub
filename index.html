@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pixelcom · Marketing AI Hub</title>
+<link rel="icon" href="https://pixelcom.es/wp-content/uploads/2024/01/cropped-pixelcom-icono.png.webp" type="image/x-icon">
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -2583,6 +2584,470 @@ function Module4() {
 }
 
 // ══════════════════════════════════════════════════════════════
+// MÓDULO — Dashboard de KPIs Directivos (BI) (datos simulados)
+// ══════════════════════════════════════════════════════════════
+function fmtMoneyEUR(n) {
+  const v = Number(n) || 0;
+  return v.toLocaleString('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0
+  });
+}
+
+function clamp(n, a, b) {
+  return Math.min(b, Math.max(a, n));
+}
+
+function buildFakeSeries(days, base, volatility, trendPerDay) {
+  const out = [];
+  let x = base;
+  for (let i = 0; i < days; i++) {
+    const noise = (Math.random() - 0.5) * volatility;
+    x = Math.max(0, x + noise + trendPerDay);
+    out.push(Math.round(x));
+  }
+  return out;
+}
+
+function MiniLineChart({ values, height = 120, color = '#D4141D', onHover }) {
+  const w = 520;
+  const h = height;
+  const pad = 14;
+  const vmin = Math.min(...values, 0);
+  const vmax = Math.max(...values, 1);
+  const sx = (i) =>
+    pad + (i * (w - pad * 2)) / Math.max(1, values.length - 1);
+  const sy = (v) =>
+    pad + ((vmax - v) * (h - pad * 2)) / Math.max(1, vmax - vmin);
+
+  const d = values
+    .map((v, i) => `${i === 0 ? 'M' : 'L'} ${sx(i).toFixed(2)} ${sy(v).toFixed(2)}`)
+    .join(' ');
+
+  return (
+    <svg
+      width="100%"
+      viewBox={`0 0 ${w} ${h}`}
+      style={{ display: 'block' }}
+      onMouseMove={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        const px = clamp(e.clientX - r.left, 0, r.width);
+        const t = px / Math.max(1, r.width);
+        const idx = clamp(Math.round(t * (values.length - 1)), 0, values.length - 1);
+        if (onHover) onHover({ idx, value: values[idx] });
+      }}
+      onMouseLeave={() => onHover && onHover(null)}
+    >
+      <path d={d} fill="none" stroke={color} strokeWidth="2.5" />
+      <path
+        d={`${d} L ${sx(values.length - 1)} ${h - pad} L ${sx(0)} ${h - pad} Z`}
+        fill={color}
+        opacity="0.08"
+      />
+    </svg>
+  );
+}
+
+function ModuleBI() {
+  const [range, setRange] = useState('30d');
+  const [metric, setMetric] = useState('mrr');
+  const [hover, setHover] = useState(null);
+
+  const days = range === '7d' ? 7 : range === '90d' ? 90 : 30;
+  const seedKey = `${range}:${metric}`;
+
+  const series = useMemo(() => {
+    // reproducibilidad básica por seedKey (sin librerías)
+    let s = 0;
+    for (let i = 0; i < seedKey.length; i++) s = (s * 31 + seedKey.charCodeAt(i)) >>> 0;
+    const oldRand = Math.random;
+    Math.random = () => {
+      // LCG
+      s = (1664525 * s + 1013904223) >>> 0;
+      return (s & 0xffffffff) / 0x100000000;
+    };
+    const v =
+      metric === 'mrr'
+        ? buildFakeSeries(days, 82000, 4200, 140)
+        : metric === 'pipeline'
+          ? buildFakeSeries(days, 260000, 16000, 320)
+          : metric === 'lead_score'
+            ? buildFakeSeries(days, 55, 9, 0.03)
+            : buildFakeSeries(days, 220, 22, 0.6); // activity
+    Math.random = oldRand;
+    return v;
+  }, [days, metric, seedKey]);
+
+  const last = series[series.length - 1] || 0;
+  const first = series[0] || 0;
+  const delta = last - first;
+  const deltaPct = first ? Math.round((delta / first) * 100) : 0;
+
+  const kpis = useMemo(() => {
+    const mrr = metric === 'mrr' ? last : 83500;
+    const pipe = metric === 'pipeline' ? last : 278000;
+    const win = 0.18 + (deltaPct / 1000);
+    const cac = 920;
+    return {
+      mrr,
+      pipeline: pipe,
+      winRate: clamp(win, 0.05, 0.35),
+      cac
+    };
+  }, [metric, last, deltaPct]);
+
+  const headline =
+    metric === 'mrr'
+      ? `MRR (estimado): ${fmtMoneyEUR(last)}`
+      : metric === 'pipeline'
+        ? `Pipeline (estimado): ${fmtMoneyEUR(last)}`
+        : metric === 'lead_score'
+          ? `Score medio: ${Math.round(last)}/100`
+          : `Actividad: ${Math.round(last)} eventos`;
+
+  return (
+    <div>
+      <div className="module-header">
+        <div className="module-tag">DIRECCIÓN · BI</div>
+        <div className="module-title">Dashboard de KPIs Directivos (BI)</div>
+        <div className="module-desc">
+          Panel de ejemplo con <strong>datos simulados</strong> para visualizar KPIs y tendencias. Los gráficos son
+          interactivos (hover) y el rango/variable cambia la serie.
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Controles</div>
+        <div className="form-grid">
+          <div className="field">
+            <label>Rango</label>
+            <select value={range} onChange={(e) => setRange(e.target.value)}>
+              <option value="7d">7 días</option>
+              <option value="30d">30 días</option>
+              <option value="90d">90 días</option>
+            </select>
+          </div>
+          <div className="field">
+            <label>Métrica</label>
+            <select value={metric} onChange={(e) => setMetric(e.target.value)}>
+              <option value="mrr">MRR</option>
+              <option value="pipeline">Pipeline</option>
+              <option value="lead_score">Score medio leads</option>
+              <option value="activity">Actividad</option>
+            </select>
+          </div>
+          <div className="field" style={{ gridColumn: 'span 2' }}>
+            <label>Resumen</label>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              {headline} · Variación {delta >= 0 ? '+' : ''}{deltaPct}% ({delta >= 0 ? '+' : ''}{delta.toLocaleString('es-ES')})
+              {hover && (
+                <>
+                  {' '}· Día {hover.idx + 1}: <strong style={{ color: 'var(--text)' }}>{Math.round(hover.value).toLocaleString('es-ES')}</strong>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="stats-row" style={{ marginTop: 16 }}>
+        <div className="stat-card">
+          <div className="stat-label">MRR (simulado)</div>
+          <div className="stat-value">{fmtMoneyEUR(kpis.mrr)}</div>
+          <div className="stat-sub">recurrencia mensual</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Pipeline (simulado)</div>
+          <div className="stat-value">{fmtMoneyEUR(kpis.pipeline)}</div>
+          <div className="stat-sub">oportunidades abiertas</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Win rate (simulado)</div>
+          <div className="stat-value">{Math.round(kpis.winRate * 100)}%</div>
+          <div className="stat-sub">últimos {days} días</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">CAC (simulado)</div>
+          <div className="stat-value">{fmtMoneyEUR(kpis.cac)}</div>
+          <div className="stat-sub">por lead convertido</div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-title">Tendencia</div>
+        <MiniLineChart
+          values={series}
+          color="var(--accent)"
+          onHover={setHover}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO — Automatización del flujo Quote-to-Cash (simulado)
+// ══════════════════════════════════════════════════════════════
+const LS_Q2C = 'pixelcom_q2c_v1';
+
+function loadQ2C() {
+  try {
+    const raw = localStorage.getItem(LS_Q2C);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveQ2C(rows) {
+  try {
+    localStorage.setItem(LS_Q2C, JSON.stringify(rows));
+  } catch {
+    /* ignore */
+  }
+}
+
+function nextStage(stage) {
+  const order = ['lead', 'quote', 'order', 'invoice', 'paid'];
+  const i = order.indexOf(stage);
+  return order[Math.min(order.length - 1, i + 1)] || 'lead';
+}
+
+function stageLabel(stage) {
+  if (stage === 'lead') return 'Lead';
+  if (stage === 'quote') return 'Presupuesto';
+  if (stage === 'order') return 'Pedido';
+  if (stage === 'invoice') return 'Factura';
+  return 'Cobrado';
+}
+
+function ModuleQuoteToCash() {
+  const { catalog } = usePixelcomCatalog();
+  const [crmContacts, setCrmContacts] = useState([]);
+  const [crmId, setCrmId] = useState('');
+  const [rows, setRows] = useState(() => loadQ2C());
+  const [form, setForm] = useState({
+    empresa: '',
+    contacto: '',
+    pais: 'Francia',
+    producto: catalog.commercialProducts?.[0]?.value || 'pixeltiming',
+    importe: 45000,
+    descuento: 0
+  });
+
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  useEffect(() => {
+    saveQ2C(rows);
+  }, [rows]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/crm');
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return;
+        if (!cancelled && Array.isArray(data.contacts)) setCrmContacts(data.contacts);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    // Mantener producto por defecto si cambia el catálogo
+    if (!catalog?.commercialProducts?.some((p) => p.value === form.producto)) {
+      set('producto', catalog.commercialProducts?.[0]?.value || 'pixeltiming');
+    }
+  }, [catalog]);
+
+  const applyCrm = (id) => {
+    const c = crmContacts.find((x) => x.id === id);
+    if (!c) return;
+    set('empresa', c.empresa || '');
+    set('contacto', c.nombre || '');
+    if (c.pais) set('pais', c.pais);
+  };
+
+  const create = () => {
+    if (!String(form.empresa || '').trim()) return;
+    const id =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : String(Date.now()) + Math.random().toString(16).slice(2);
+    const now = Date.now();
+    const base = Number(form.importe) || 0;
+    const disc = clamp(Number(form.descuento) || 0, 0, 60);
+    const neto = Math.round(base * (1 - disc / 100));
+    const entry = {
+      id,
+      createdAt: now,
+      updatedAt: now,
+      stage: 'lead',
+      empresa: String(form.empresa || '').trim(),
+      contacto: String(form.contacto || '').trim(),
+      pais: form.pais,
+      producto: form.producto,
+      importe_base: base,
+      descuento_pct: disc,
+      importe_neto: neto,
+      ref: `Q-${String(now).slice(-6)}`
+    };
+    setRows((prev) => [entry, ...prev]);
+    logActivity('q2c', 'create', { id: entry.id, stage: entry.stage });
+  };
+
+  const advance = (id) => {
+    setRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        const st = nextStage(r.stage);
+        const next = { ...r, stage: st, updatedAt: Date.now() };
+        logActivity('q2c', 'advance', { id, stage: st });
+        return next;
+      })
+    );
+  };
+
+  const remove = (id) => {
+    if (!window.confirm('¿Eliminar esta operación del flujo Quote-to-Cash?')) return;
+    setRows((prev) => prev.filter((r) => r.id !== id));
+    logActivity('q2c', 'delete', { id });
+  };
+
+  return (
+    <div>
+      <div className="module-header">
+        <div className="module-tag">OPERACIONES · AUTOMATIZACIÓN</div>
+        <div className="module-title">Automatización del flujo Quote-to-Cash</div>
+        <div className="module-desc">
+          Demo de flujo <strong>simulado</strong> para pasar de oportunidad a cobro: lead → presupuesto → pedido → factura → cobrado.
+          Útil para definir automatizaciones y eventos, aunque aquí los datos son “fake”.
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Crear operación</div>
+        <div className="form-grid">
+          <div className="field" style={{ gridColumn: 'span 2' }}>
+            <label>Elegir contacto del CRM (opcional)</label>
+            <select
+              value={crmId}
+              onChange={(e) => {
+                const v = e.target.value;
+                setCrmId(v);
+                if (v) applyCrm(v);
+              }}
+            >
+              <option value="">—</option>
+              {crmContacts.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {(c.empresa || '—') + ' · ' + (c.nombre || '—')}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>Empresa *</label>
+            <input value={form.empresa} onChange={(e) => set('empresa', e.target.value)} />
+          </div>
+          <div className="field">
+            <label>Contacto</label>
+            <input value={form.contacto} onChange={(e) => set('contacto', e.target.value)} />
+          </div>
+          <div className="field">
+            <label>País</label>
+            <input value={form.pais} onChange={(e) => set('pais', e.target.value)} placeholder="Francia, España…" />
+          </div>
+          <div className="field">
+            <label>Producto / línea</label>
+            <select value={form.producto} onChange={(e) => set('producto', e.target.value)}>
+              {catalog.commercialProducts.map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>Importe base (€)</label>
+            <input
+              type="number"
+              value={form.importe}
+              onChange={(e) => set('importe', e.target.value)}
+              min="0"
+            />
+          </div>
+          <div className="field">
+            <label>Descuento (%)</label>
+            <input
+              type="number"
+              value={form.descuento}
+              onChange={(e) => set('descuento', e.target.value)}
+              min="0"
+              max="60"
+            />
+          </div>
+        </div>
+        <button type="button" className="btn btn-primary" style={{ marginTop: 12 }} onClick={create}>
+          Añadir al flujo
+        </button>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-title">Operaciones ({rows.length})</div>
+        {rows.length === 0 ? (
+          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+            Crea una operación para ver el flujo.
+          </p>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="crm-table">
+              <thead>
+                <tr>
+                  <th>Ref</th>
+                  <th>Empresa</th>
+                  <th>Producto</th>
+                  <th>Importe</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id}>
+                    <td>{r.ref}</td>
+                    <td>{r.empresa}</td>
+                    <td>{productLineLabel(catalog.commercialProducts, r.producto)}</td>
+                    <td>{fmtMoneyEUR(r.importe_neto)}</td>
+                    <td>{stageLabel(r.stage)}</td>
+                    <td>
+                      <div className="crm-actions">
+                        {r.stage !== 'paid' && (
+                          <button type="button" className="crm-action-btn" onClick={() => advance(r.id)}>
+                            Avanzar
+                          </button>
+                        )}
+                        <button type="button" className="crm-action-btn crm-action-danger" onClick={() => remove(r.id)}>
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
 // MÓDULO — Catálogo Pixelcom (textos IA + opciones de selectores)
 // ══════════════════════════════════════════════════════════════
 function ModuleCatalog() {
@@ -3911,6 +4376,8 @@ const MODULES = [
   { id: 'crm', label: 'CRM', group: 'Comercial' },
   { id: 'contenidos', label: 'Contenidos SEO', group: 'Marketing' },
   { id: 'newsletter', label: 'Newsletter', group: 'Marketing' },
+  { id: 'bi', label: 'Dashboard BI', group: 'Dirección' },
+  { id: 'q2c', label: 'Quote-to-Cash', group: 'Operaciones' },
   { id: 'catalogo', label: 'Catálogo', group: 'Datos' },
   { id: 'historico', label: 'Histórico', group: 'Datos' }
 ];
@@ -3967,6 +4434,8 @@ function App() {
           {active === 'crm' && <ModuleCRM />}
           {active === 'contenidos' && <Module2 apiKey={apiKey} />}
           {active === 'newsletter' && <Module3 apiKey={apiKey} />}
+          {active === 'bi' && <ModuleBI />}
+          {active === 'q2c' && <ModuleQuoteToCash />}
           {active === 'catalogo' && <ModuleCatalog />}
           {active === 'historico' && <ModuleHistoric />}
         </div>
