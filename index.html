@@ -8,6 +8,7 @@
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -780,6 +781,75 @@
   .crm-enc-medio { background: #FEF3C7; color: #B45309; }
   .crm-enc-bajo { background: #F1F5F9; color: #64748B; }
 
+  /* Q2C board */
+  .q2c-board {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(220px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+  @media (max-width: 1100px) {
+    .q2c-board { grid-template-columns: 1fr; }
+  }
+  .q2c-col {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px;
+    min-height: 120px;
+  }
+  .q2c-col-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .q2c-col-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .q2c-col-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+  .q2c-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 10px 8px;
+    margin-bottom: 10px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+  .q2c-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 18px -14px rgba(0,0,0,0.25);
+    border-color: var(--border-strong);
+  }
+  .q2c-card.moved {
+    border-color: rgba(212, 20, 29, 0.55);
+    box-shadow: 0 18px 30px -18px rgba(212, 20, 29, 0.45);
+  }
+  .q2c-card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.25;
+  }
+  .q2c-card-meta {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
   .crm-modal-overlay {
     position: fixed;
     inset: 0;
@@ -1532,6 +1602,9 @@ function Module1({ apiKey }) {
     if (c.notas) set('contexto', c.notas);
   };
 
+  const isPaisOtro = String(form.pais || '').toLowerCase() === 'otro';
+  const [paisManual, setPaisManual] = useState('');
+
   const tiposInstalacion = [
     { value: 'nueva_instalacion', label: 'Nueva apertura de karting' },
     { value: 'renovacion', label: 'Renovación de instalación existente' },
@@ -1546,13 +1619,14 @@ function Module1({ apiKey }) {
   const generate = async () => {
     if (!form.nombre || !form.empresa) { setError('Nombre y empresa son obligatorios.'); return; }
     setLoading(true); setError(''); setResult(''); setSavedGenId(null); setWebhookError(''); setWebhookOk(false);
+    const paisFinal = isPaisOtro ? (paisManual || '').trim() : String(form.pais || '').trim();
     const system = `Eres el asistente comercial de Pixelcom Ingeniería, empresa española especializada en sistemas de cronometraje y señalización para karting y circuitos de velocidad (marcas Pixeltiming y Pixelmotorsport). Redactas correos electrónicos profesionales en ${langLabel}. El tono es cercano pero técnico, confiado, breve y orientado a resultados. Evita plantillas genéricas. ${sig}
 
 ${catalog.fullText}`;
     const user = `Redacta un email de primer contacto en ${langLabel} para:
 - Nombre contacto: ${form.nombre}
 - Empresa: ${form.empresa}
-- País: ${form.pais}
+- País: ${paisFinal || 'no indicado'}
 - Tipo de instalación / perfil: ${tiposInstalacion.find(t=>t.value===form.tipo)?.label}
 - Producto de interés: ${productLineLabel(productos, form.producto)}
 - Contexto adicional: ${form.contexto || 'ninguno'}
@@ -1683,13 +1757,29 @@ Reglas:
             <label>País</label>
             <select value={form.pais} onChange={e=>set('pais',e.target.value)}>
               <option>Francia</option>
+              <option>España</option>
               <option>Bélgica</option>
+              <option>Países Bajos</option>
               <option>Suiza</option>
               <option>Luxemburgo</option>
               <option>Reino Unido</option>
               <option>Estados Unidos</option>
+              <option>Italia</option>
+              <option>Alemania</option>
+              <option>Portugal</option>
+              <option>Otro</option>
             </select>
           </div>
+          {isPaisOtro && (
+            <div className="field">
+              <label>País (manual)</label>
+              <input
+                value={paisManual}
+                onChange={(e) => setPaisManual(e.target.value)}
+                placeholder="Ej.: Marruecos"
+              />
+            </div>
+          )}
           <div className="field">
             <label>Perfil / tipo de instalación</label>
             <select value={form.tipo} onChange={e=>set('tipo',e.target.value)}>
@@ -2649,10 +2739,61 @@ function MiniLineChart({ values, height = 120, color = '#D4141D', onHover }) {
   );
 }
 
+function MiniBarChart({ values, height = 140, color = '#0F172A', onHover }) {
+  const w = 520;
+  const h = height;
+  const pad = 14;
+  const vmax = Math.max(...values, 1);
+  const bw = (w - pad * 2) / Math.max(1, values.length);
+  return (
+    <svg
+      width="100%"
+      viewBox={`0 0 ${w} ${h}`}
+      style={{ display: 'block' }}
+      onMouseMove={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        const px = clamp(e.clientX - r.left, 0, r.width);
+        const t = px / Math.max(1, r.width);
+        const idx = clamp(Math.floor(t * values.length), 0, values.length - 1);
+        if (onHover) onHover({ idx, value: values[idx] });
+      }}
+      onMouseLeave={() => onHover && onHover(null)}
+    >
+      {values.map((v, i) => {
+        const x = pad + i * bw + bw * 0.15;
+        const barW = bw * 0.7;
+        const barH = ((Number(v) || 0) * (h - pad * 2)) / vmax;
+        const y = h - pad - barH;
+        return (
+          <rect
+            key={i}
+            x={x}
+            y={y}
+            width={barW}
+            height={barH}
+            rx="3"
+            fill={color}
+            opacity="0.85"
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+function Sparkline({ values, color = 'var(--accent)' }) {
+  return (
+    <div style={{ marginTop: 10 }}>
+      <MiniLineChart values={values} height={66} color={color} onHover={null} />
+    </div>
+  );
+}
+
 function ModuleBI() {
   const [range, setRange] = useState('30d');
   const [metric, setMetric] = useState('mrr');
   const [hover, setHover] = useState(null);
+  const [hoverBars, setHoverBars] = useState(null);
 
   const days = range === '7d' ? 7 : range === '90d' ? 90 : 30;
   const seedKey = `${range}:${metric}`;
@@ -2706,6 +2847,57 @@ function ModuleBI() {
           ? `Score medio: ${Math.round(last)}/100`
           : `Actividad: ${Math.round(last)} eventos`;
 
+  const spark = useMemo(() => {
+    const seed = (k) => {
+      let s = 0;
+      for (let i = 0; i < k.length; i++) s = (s * 31 + k.charCodeAt(i)) >>> 0;
+      const old = Math.random;
+      Math.random = () => {
+        s = (1664525 * s + 1013904223) >>> 0;
+        return (s & 0xffffffff) / 0x100000000;
+      };
+      const v = buildFakeSeries(18, 10 + (s % 30), 6 + (s % 10), 0.12);
+      Math.random = old;
+      return v;
+    };
+    return {
+      mrr: seed(`mrr:${range}`),
+      pipeline: seed(`pipe:${range}`),
+      win: seed(`win:${range}`),
+      act: seed(`act:${range}`)
+    };
+  }, [range]);
+
+  const sources = useMemo(() => {
+    const labels = ['Web', 'Feria', 'Referencia', 'LinkedIn', 'Partners'];
+    const seedKey2 = `${range}:sources`;
+    let s = 0;
+    for (let i = 0; i < seedKey2.length; i++) s = (s * 31 + seedKey2.charCodeAt(i)) >>> 0;
+    const oldRand = Math.random;
+    Math.random = () => {
+      s = (1664525 * s + 1013904223) >>> 0;
+      return (s & 0xffffffff) / 0x100000000;
+    };
+    const vals = labels.map(() => Math.max(3, Math.round(10 + Math.random() * 40)));
+    Math.random = oldRand;
+    return { labels, vals };
+  }, [range]);
+
+  const funnel = useMemo(() => {
+    const leads = 120 + (days === 7 ? 0 : days === 30 ? 40 : 90);
+    const mql = Math.round(leads * 0.55);
+    const sql = Math.round(mql * 0.45);
+    const quote = Math.round(sql * 0.55);
+    const won = Math.round(quote * 0.22);
+    return [
+      { k: 'Leads', v: leads },
+      { k: 'MQL', v: mql },
+      { k: 'SQL', v: sql },
+      { k: 'Presupuesto', v: quote },
+      { k: 'Ganadas', v: won }
+    ];
+  }, [days]);
+
   return (
     <div>
       <div className="module-header">
@@ -2756,21 +2948,25 @@ function ModuleBI() {
           <div className="stat-label">MRR (simulado)</div>
           <div className="stat-value">{fmtMoneyEUR(kpis.mrr)}</div>
           <div className="stat-sub">recurrencia mensual</div>
+          <Sparkline values={spark.mrr} />
         </div>
         <div className="stat-card">
           <div className="stat-label">Pipeline (simulado)</div>
           <div className="stat-value">{fmtMoneyEUR(kpis.pipeline)}</div>
           <div className="stat-sub">oportunidades abiertas</div>
+          <Sparkline values={spark.pipeline} color="#0F172A" />
         </div>
         <div className="stat-card">
           <div className="stat-label">Win rate (simulado)</div>
           <div className="stat-value">{Math.round(kpis.winRate * 100)}%</div>
           <div className="stat-sub">últimos {days} días</div>
+          <Sparkline values={spark.win} color="#10B981" />
         </div>
         <div className="stat-card">
           <div className="stat-label">CAC (simulado)</div>
           <div className="stat-value">{fmtMoneyEUR(kpis.cac)}</div>
           <div className="stat-sub">por lead convertido</div>
+          <Sparkline values={spark.act} color="#6366F1" />
         </div>
       </div>
 
@@ -2781,6 +2977,48 @@ function ModuleBI() {
           color="var(--accent)"
           onHover={setHover}
         />
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-title">Leads por origen (simulado)</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+          {hoverBars
+            ? `${sources.labels[hoverBars.idx]}: ${Math.round(hoverBars.value)} leads`
+            : 'Pasa el ratón por las barras para ver detalle.'}
+        </div>
+        <MiniBarChart
+          values={sources.vals}
+          color="var(--text)"
+          onHover={setHoverBars}
+        />
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+          {sources.labels.map((l, i) => (
+            <span key={l} className="pill" style={{ cursor: 'default' }}>
+              {l}: <strong style={{ color: 'var(--text)' }}>{sources.vals[i]}</strong>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-title">Funnel comercial (simulado)</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10, marginTop: 8 }}>
+          {funnel.map((x, i) => {
+            const base = funnel[0].v || 1;
+            const pct = Math.round((x.v / base) * 100);
+            return (
+              <div key={x.k} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 70px', gap: 12, alignItems: 'center' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>{x.k}</div>
+                <div style={{ height: 10, borderRadius: 999, background: 'var(--surface2)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent)' }} />
+                </div>
+                <div style={{ fontSize: 12, textAlign: 'right' }}>
+                  <strong>{x.v}</strong> <span style={{ color: 'var(--text-faint)' }}>({pct}%)</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -2827,6 +3065,9 @@ function ModuleQuoteToCash() {
   const [crmContacts, setCrmContacts] = useState([]);
   const [crmId, setCrmId] = useState('');
   const [rows, setRows] = useState(() => loadQ2C());
+  const [quoteRowId, setQuoteRowId] = useState(null);
+  const [quoteHtml, setQuoteHtml] = useState('');
+  const [lastMovedId, setLastMovedId] = useState(null);
   const [form, setForm] = useState({
     empresa: '',
     contacto: '',
@@ -2903,6 +3144,8 @@ function ModuleQuoteToCash() {
   };
 
   const advance = (id) => {
+    setLastMovedId(id);
+    setTimeout(() => setLastMovedId(null), 1300);
     setRows((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r;
@@ -2918,6 +3161,165 @@ function ModuleQuoteToCash() {
     if (!window.confirm('¿Eliminar esta operación del flujo Quote-to-Cash?')) return;
     setRows((prev) => prev.filter((r) => r.id !== id));
     logActivity('q2c', 'delete', { id });
+  };
+
+  const stages = ['lead', 'quote', 'order', 'invoice', 'paid'];
+  const rowsByStage = useMemo(() => {
+    const map = { lead: [], quote: [], order: [], invoice: [], paid: [] };
+    for (const r of rows) {
+      const k = map[r.stage] ? r.stage : 'lead';
+      map[k].push(r);
+    }
+    // más recientes arriba
+    for (const k of stages) {
+      map[k].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    }
+    return map;
+  }, [rows]);
+
+  const logoUrl =
+    'https://pixelcom.es/wp-content/uploads/2023/07/Logos-Pixelcom-black-red.png.webp';
+
+  const buildQuoteHtml = (r) => {
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('es-ES', { dateStyle: 'long' });
+    const productoLabel = productLineLabel(catalog.commercialProducts, r.producto);
+    const neto = fmtMoneyEUR(r.importe_neto);
+    const base = fmtMoneyEUR(r.importe_base);
+    const disc = Number(r.descuento_pct) || 0;
+
+    return `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Presupuesto ${r.ref}</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:Roboto,Arial,sans-serif;color:#0F172A;margin:0;background:#fff}
+    .page{padding:36px 40px}
+    .top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+    .logo{height:42px;object-fit:contain}
+    .doc-title{font-size:20px;font-weight:700;margin:0}
+    .muted{color:#475569;font-size:12px;line-height:1.5}
+    .pill{display:inline-block;background:#F1F5F9;border:1px solid #E2E8F0;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;color:#475569}
+    .box{margin-top:18px;border:1px solid #E2E8F0;border-radius:12px;padding:14px 16px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .k{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#94A3B8;font-weight:700}
+    .v{font-size:13px;color:#0F172A}
+    table{width:100%;border-collapse:collapse;margin-top:14px}
+    th,td{padding:10px 8px;border-bottom:1px solid #E2E8F0;text-align:left;font-size:12px;vertical-align:top}
+    th{color:#475569;text-transform:uppercase;font-size:10px;letter-spacing:.06em}
+    .right{text-align:right}
+    .total{font-size:16px;font-weight:800}
+    .foot{margin-top:18px;color:#64748B;font-size:11px;line-height:1.5}
+    .accent{color:#D4141D}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="top">
+      <div>
+        <h1 class="doc-title">Presupuesto <span class="accent">${r.ref}</span></h1>
+        <div class="muted">${dateStr}</div>
+        <div style="margin-top:10px"><span class="pill">Quote-to-Cash · Demo</span></div>
+      </div>
+      <div style="text-align:right">
+        <img class="logo" src="${logoUrl}" alt="Pixelcom" />
+        <div class="muted" style="margin-top:6px">
+          Pixelcom Ingeniería · www.pixelcom.es<br/>
+          Modelo All-in-One: hardware + software + soporte
+        </div>
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="grid">
+        <div>
+          <div class="k">Cliente</div>
+          <div class="v"><strong>${escapeHtml(r.empresa || '')}</strong></div>
+          <div class="muted">${escapeHtml(r.contacto || '')}</div>
+          <div class="muted">${escapeHtml(r.pais || '')}</div>
+        </div>
+        <div>
+          <div class="k">Resumen</div>
+          <div class="v">${escapeHtml(productoLabel || '')}</div>
+          <div class="muted">Importe base: ${base}${disc ? ` · Descuento: ${disc}%` : ''}</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Concepto</th>
+            <th>Detalle</th>
+            <th class="right">Importe</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>${escapeHtml(productoLabel || '')}</strong></td>
+            <td>Propuesta comercial (demo) basada en el catálogo Pixelcom. Ajustar alcance final tras llamada de descubrimiento.</td>
+            <td class="right">${base}</td>
+          </tr>
+          ${disc ? `<tr>
+            <td>Descuento</td>
+            <td>${disc}% aplicado</td>
+            <td class="right">-${fmtMoneyEUR((Number(r.importe_base)||0) - (Number(r.importe_neto)||0))}</td>
+          </tr>` : ''}
+          <tr>
+            <td colspan="2" class="right total">Total</td>
+            <td class="right total">${neto}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="foot">
+      <strong>Notas:</strong> Este PDF es un ejemplo generado en el Hub (datos simulados). Condiciones comerciales e impuestos no incluidos en esta demo.
+    </div>
+  </div>
+</body>
+</html>`;
+  };
+
+  const openQuote = (r) => {
+    setQuoteRowId(r.id);
+    setQuoteHtml(buildQuoteHtml(r));
+  };
+
+  const downloadQuotePdf = async (r) => {
+    if (typeof window.html2pdf !== 'function') {
+      alert('No se pudo cargar html2pdf. Revisa conexión o bloqueadores.');
+      return;
+    }
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-99999px';
+    wrapper.style.top = '0';
+    wrapper.style.width = '794px'; // ~A4 px a 96dpi
+    wrapper.innerHTML = buildQuoteHtml(r);
+    document.body.appendChild(wrapper);
+
+    const page = wrapper.querySelector('.page') || wrapper;
+    const filename = `Presupuesto_${r.ref || 'Pixelcom'}.pdf`;
+    try {
+      await window.html2pdf()
+        .set({
+          margin: 10,
+          filename,
+          image: { type: 'jpeg', quality: 0.96 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        })
+        .from(page)
+        .save();
+      logActivity('q2c', 'quote_pdf', { id: r.id });
+    } catch (e) {
+      alert(e?.message || 'Error al generar el PDF.');
+    } finally {
+      wrapper.remove();
+    }
   };
 
   return (
@@ -3026,6 +3428,12 @@ function ModuleQuoteToCash() {
                     <td>{stageLabel(r.stage)}</td>
                     <td>
                       <div className="crm-actions">
+                        <button type="button" className="crm-action-btn" onClick={() => openQuote(r)}>
+                          Ver presupuesto
+                        </button>
+                        <button type="button" className="crm-action-btn" onClick={() => downloadQuotePdf(r)}>
+                          Descargar PDF
+                        </button>
                         {r.stage !== 'paid' && (
                           <button type="button" className="crm-action-btn" onClick={() => advance(r.id)}>
                             Avanzar
@@ -3043,6 +3451,132 @@ function ModuleQuoteToCash() {
           </div>
         )}
       </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-title">Vista de flujo (Kanban)</div>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>
+          Representación visual del avance. Al pulsar <strong>Avanzar</strong>, la tarjeta cambia de columna.
+        </p>
+        <div className="q2c-board">
+          {stages.map((st) => (
+            <div key={st} className="q2c-col">
+              <div className="q2c-col-head">
+                <div className="q2c-col-title">{stageLabel(st)}</div>
+                <div className="q2c-col-count">{rowsByStage[st].length}</div>
+              </div>
+              {rowsByStage[st].length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-faint)', padding: '10px 2px' }}>
+                  —
+                </div>
+              ) : (
+                rowsByStage[st].map((r) => (
+                  <div
+                    key={r.id}
+                    className={`q2c-card ${lastMovedId === r.id ? 'moved' : ''}`}
+                  >
+                    <div className="q2c-card-title">{r.empresa}</div>
+                    <div className="q2c-card-meta">
+                      <span className="pill">{r.ref}</span>
+                      <span>{fmtMoneyEUR(r.importe_neto)}</span>
+                    </div>
+                    <div className="crm-actions" style={{ marginTop: 10 }}>
+                      <button type="button" className="crm-action-btn" onClick={() => openQuote(r)}>
+                        Presupuesto
+                      </button>
+                      <button type="button" className="crm-action-btn" onClick={() => downloadQuotePdf(r)}>
+                        PDF
+                      </button>
+                      {r.stage !== 'paid' && (
+                        <button type="button" className="crm-action-btn" onClick={() => advance(r.id)}>
+                          Avanzar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {quoteRowId && (
+        <div
+          className="crm-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setQuoteRowId(null);
+              setQuoteHtml('');
+            }
+          }}
+        >
+          <div
+            className="crm-modal-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="q2c-quote-title"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 960 }}
+          >
+            <div className="crm-modal-head">
+              <div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--text-faint)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em'
+                  }}
+                >
+                  Quote-to-Cash
+                </div>
+                <h2
+                  id="q2c-quote-title"
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 600,
+                    margin: '4px 0 2px',
+                    lineHeight: 1.25
+                  }}
+                >
+                  Presupuesto (vista previa)
+                </h2>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  Puedes descargarlo en PDF desde el botón de la tabla.
+                </div>
+              </div>
+              <button
+                type="button"
+                className="crm-modal-close"
+                onClick={() => {
+                  setQuoteRowId(null);
+                  setQuoteHtml('');
+                }}
+                aria-label="Cerrar ventana"
+              >
+                ×
+              </button>
+            </div>
+            <div className="crm-modal-body">
+              <div
+                style={{
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  background: '#fff'
+                }}
+              >
+                <iframe
+                  title="Vista previa presupuesto"
+                  sandbox=""
+                  style={{ width: '100%', minHeight: 700, border: 'none' }}
+                  srcDoc={quoteHtml}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
