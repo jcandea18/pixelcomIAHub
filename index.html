@@ -3296,23 +3296,44 @@ function ModuleQuoteToCash() {
     }
     const wrapper = document.createElement('div');
     wrapper.style.position = 'fixed';
-    wrapper.style.inset = '0';
-    wrapper.style.opacity = '0';
+    wrapper.style.left = '0';
+    wrapper.style.top = '0';
+    wrapper.style.opacity = '1';
     wrapper.style.pointerEvents = 'none';
     wrapper.style.zIndex = '-1';
     wrapper.style.width = '794px'; // ~A4 px a 96dpi
+    wrapper.style.transform = 'translateX(-2000px)';
     wrapper.innerHTML = buildQuoteMarkup(r);
     document.body.appendChild(wrapper);
 
     const page = wrapper.querySelector('.q2c-quote-root') || wrapper;
     const filename = `Presupuesto_${r.ref || 'Pixelcom'}.pdf`;
     try {
+      // Espera a que carguen imágenes (logo) antes de renderizar canvas.
+      const imgs = Array.from(page.querySelectorAll('img'));
+      await Promise.all(
+        imgs.map(
+          (img) =>
+            img.complete
+              ? Promise.resolve()
+              : new Promise((resolve) => {
+                  img.onload = resolve;
+                  img.onerror = resolve;
+                })
+        )
+      );
+
       await window.html2pdf()
         .set({
           margin: 10,
           filename,
           image: { type: 'jpeg', quality: 0.96 },
-          html2canvas: { scale: 2, useCORS: true, imageTimeout: 15000 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            imageTimeout: 15000
+          },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         })
         .from(page)
