@@ -2674,7 +2674,7 @@ function Module4() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// MÓDULO — Dashboard de KPIs Directivos (BI) (datos simulados)
+// MÓDULO — Dashboard de KPIs Directivos (BI)
 // ══════════════════════════════════════════════════════════════
 function fmtMoneyEUR(n) {
   const v = Number(n) || 0;
@@ -2904,8 +2904,7 @@ function ModuleBI() {
         <div className="module-tag">DIRECCIÓN · BI</div>
         <div className="module-title">Dashboard de KPIs Directivos (BI)</div>
         <div className="module-desc">
-          Panel de ejemplo con <strong>datos simulados</strong> para visualizar KPIs y tendencias. Los gráficos son
-          interactivos (hover) y el rango/variable cambia la serie.
+          Panel de KPIs y tendencias. Los gráficos son interactivos (hover) y el rango/variable cambia la serie.
         </div>
       </div>
 
@@ -2945,25 +2944,25 @@ function ModuleBI() {
 
       <div className="stats-row" style={{ marginTop: 16 }}>
         <div className="stat-card">
-          <div className="stat-label">MRR (simulado)</div>
+          <div className="stat-label">MRR</div>
           <div className="stat-value">{fmtMoneyEUR(kpis.mrr)}</div>
           <div className="stat-sub">recurrencia mensual</div>
           <Sparkline values={spark.mrr} />
         </div>
         <div className="stat-card">
-          <div className="stat-label">Pipeline (simulado)</div>
+          <div className="stat-label">Pipeline</div>
           <div className="stat-value">{fmtMoneyEUR(kpis.pipeline)}</div>
           <div className="stat-sub">oportunidades abiertas</div>
           <Sparkline values={spark.pipeline} color="#0F172A" />
         </div>
         <div className="stat-card">
-          <div className="stat-label">Win rate (simulado)</div>
+          <div className="stat-label">Win rate</div>
           <div className="stat-value">{Math.round(kpis.winRate * 100)}%</div>
           <div className="stat-sub">últimos {days} días</div>
           <Sparkline values={spark.win} color="#10B981" />
         </div>
         <div className="stat-card">
-          <div className="stat-label">CAC (simulado)</div>
+          <div className="stat-label">CAC</div>
           <div className="stat-value">{fmtMoneyEUR(kpis.cac)}</div>
           <div className="stat-sub">por lead convertido</div>
           <Sparkline values={spark.act} color="#6366F1" />
@@ -2980,7 +2979,7 @@ function ModuleBI() {
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
-        <div className="card-title">Leads por origen (simulado)</div>
+        <div className="card-title">Leads por origen</div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
           {hoverBars
             ? `${sources.labels[hoverBars.idx]}: ${Math.round(hoverBars.value)} leads`
@@ -3001,7 +3000,7 @@ function ModuleBI() {
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
-        <div className="card-title">Funnel comercial (simulado)</div>
+        <div className="card-title">Funnel comercial</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10, marginTop: 8 }}>
           {funnel.map((x, i) => {
             const base = funnel[0].v || 1;
@@ -3025,7 +3024,7 @@ function ModuleBI() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// MÓDULO — Automatización del flujo Quote-to-Cash (simulado)
+// MÓDULO — Automatización del flujo Quote-to-Cash
 // ══════════════════════════════════════════════════════════════
 const LS_Q2C = 'pixelcom_q2c_v1';
 
@@ -3180,7 +3179,7 @@ function ModuleQuoteToCash() {
   const logoUrl =
     'https://pixelcom.es/wp-content/uploads/2023/07/Logos-Pixelcom-black-red.png.webp';
 
-  const buildQuoteHtml = (r) => {
+  const buildQuoteMarkup = (r) => {
     const today = new Date();
     const dateStr = today.toLocaleDateString('es-ES', { dateStyle: 'long' });
     const productoLabel = productLineLabel(catalog.commercialProducts, r.producto);
@@ -3188,15 +3187,10 @@ function ModuleQuoteToCash() {
     const base = fmtMoneyEUR(r.importe_base);
     const disc = Number(r.descuento_pct) || 0;
 
-    return `<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Presupuesto ${r.ref}</title>
+    return `<div class="q2c-quote-root">
   <style>
     *{box-sizing:border-box}
-    body{font-family:Roboto,Arial,sans-serif;color:#0F172A;margin:0;background:#fff}
+    .q2c-quote-root{font-family:Roboto,Arial,sans-serif;color:#0F172A;margin:0;background:#fff}
     .page{padding:36px 40px}
     .top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
     .logo{height:42px;object-fit:contain}
@@ -3215,14 +3209,12 @@ function ModuleQuoteToCash() {
     .foot{margin-top:18px;color:#64748B;font-size:11px;line-height:1.5}
     .accent{color:#D4141D}
   </style>
-</head>
-<body>
   <div class="page">
     <div class="top">
       <div>
         <h1 class="doc-title">Presupuesto <span class="accent">${r.ref}</span></h1>
         <div class="muted">${dateStr}</div>
-        <div style="margin-top:10px"><span class="pill">Quote-to-Cash · Demo</span></div>
+        <div style="margin-top:10px"><span class="pill">Quote-to-Cash</span></div>
       </div>
       <div style="text-align:right">
         <img class="logo" src="${logoUrl}" alt="Pixelcom" />
@@ -3276,16 +3268,25 @@ function ModuleQuoteToCash() {
     </div>
 
     <div class="foot">
-      <strong>Notas:</strong> Este PDF es un ejemplo generado en el Hub (datos simulados). Condiciones comerciales e impuestos no incluidos en esta demo.
+      <strong>Notas:</strong> Condiciones comerciales e impuestos no incluidos.
     </div>
   </div>
-</body>
-</html>`;
+</div>`;
   };
+
+  const buildQuoteDoc = (r) => `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Presupuesto ${r.ref}</title>
+</head>
+<body>${buildQuoteMarkup(r)}</body>
+</html>`;
 
   const openQuote = (r) => {
     setQuoteRowId(r.id);
-    setQuoteHtml(buildQuoteHtml(r));
+    setQuoteHtml(buildQuoteDoc(r));
   };
 
   const downloadQuotePdf = async (r) => {
@@ -3295,13 +3296,15 @@ function ModuleQuoteToCash() {
     }
     const wrapper = document.createElement('div');
     wrapper.style.position = 'fixed';
-    wrapper.style.left = '-99999px';
-    wrapper.style.top = '0';
+    wrapper.style.inset = '0';
+    wrapper.style.opacity = '0';
+    wrapper.style.pointerEvents = 'none';
+    wrapper.style.zIndex = '-1';
     wrapper.style.width = '794px'; // ~A4 px a 96dpi
-    wrapper.innerHTML = buildQuoteHtml(r);
+    wrapper.innerHTML = buildQuoteMarkup(r);
     document.body.appendChild(wrapper);
 
-    const page = wrapper.querySelector('.page') || wrapper;
+    const page = wrapper.querySelector('.q2c-quote-root') || wrapper;
     const filename = `Presupuesto_${r.ref || 'Pixelcom'}.pdf`;
     try {
       await window.html2pdf()
@@ -3309,7 +3312,7 @@ function ModuleQuoteToCash() {
           margin: 10,
           filename,
           image: { type: 'jpeg', quality: 0.96 },
-          html2canvas: { scale: 2, useCORS: true },
+          html2canvas: { scale: 2, useCORS: true, imageTimeout: 15000 },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         })
         .from(page)
@@ -3328,8 +3331,7 @@ function ModuleQuoteToCash() {
         <div className="module-tag">OPERACIONES · AUTOMATIZACIÓN</div>
         <div className="module-title">Automatización del flujo Quote-to-Cash</div>
         <div className="module-desc">
-          Demo de flujo <strong>simulado</strong> para pasar de oportunidad a cobro: lead → presupuesto → pedido → factura → cobrado.
-          Útil para definir automatizaciones y eventos, aunque aquí los datos son “fake”.
+          Flujo para pasar de oportunidad a cobro: lead → presupuesto → pedido → factura → cobrado.
         </div>
       </div>
 
@@ -4933,7 +4935,7 @@ function App() {
           />
           <div className="product">AI Hub</div>
         </div>
-        <div className="header-badge">MVP v1.0</div>
+        <div className="header-badge">Pixelcom</div>
       </div>
 
       <div className="layout">
@@ -4954,11 +4956,7 @@ function App() {
           <div className="sidebar-section" style={{marginTop:32}}>Info</div>
           <div className="sidebar-item" style={{cursor:'default',opacity:0.5}}>
             <div className="sidebar-dot" />
-            Casos de uso: 1, 3
-          </div>
-          <div className="sidebar-item" style={{cursor:'default',opacity:0.5}}>
-            <div className="sidebar-dot" />
-            Modelo: Claude Sonnet
+            Pixelcom AI Hub
           </div>
         </div>
 
