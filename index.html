@@ -3067,7 +3067,6 @@ function ModuleQuoteToCash() {
   const [quoteRowId, setQuoteRowId] = useState(null);
   const [quoteHtml, setQuoteHtml] = useState('');
   const [lastMovedId, setLastMovedId] = useState(null);
-  const quoteFrameRef = React.useRef(null);
   const [form, setForm] = useState({
     empresa: '',
     contacto: '',
@@ -3291,10 +3290,51 @@ function ModuleQuoteToCash() {
     }
     @media print {
       .page { padding: 0 !important; }
+      .print-controls { display: none !important; }
+    }
+    .print-controls{
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: #ffffff;
+      border-bottom: 1px solid #E2E8F0;
+      font-family: Roboto, Arial, sans-serif;
+    }
+    .print-btn{
+      appearance: none;
+      border: 1px solid #CBD5E1;
+      background: #F1F5F9;
+      color: #0F172A;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .print-btn.primary{
+      background: #D4141D;
+      border-color: #D4141D;
+      color: #fff;
     }
   </style>
 </head>
-<body>${buildQuoteMarkup(r)}</body>
+<body>
+  <div class="print-controls">
+    <div>
+      <strong>Presupuesto ${r.ref}</strong>
+      <span style="color:#64748B;font-size:12px;margin-left:8px">Imprime o “Guardar como PDF”</span>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="print-btn primary" onclick="window.print()">Imprimir / Guardar PDF</button>
+      <button class="print-btn" onclick="window.close()">Cerrar</button>
+    </div>
+  </div>
+  ${buildQuoteMarkup(r)}
+</body>
 </html>`;
 
   const openQuote = (r) => {
@@ -3302,8 +3342,7 @@ function ModuleQuoteToCash() {
     setQuoteHtml(buildQuoteDoc(r));
   };
 
-  const printOrSavePdf = (r) => {
-    // Alternativa robusta: imprimir el HTML (y "Guardar como PDF" desde el navegador).
+  const openPrintableQuote = (r) => {
     const html = buildQuoteDoc(r);
     const w = window.open('', '_blank', 'noopener,noreferrer');
     if (!w) {
@@ -3314,18 +3353,7 @@ function ModuleQuoteToCash() {
     w.document.write(html);
     w.document.close();
     w.focus();
-    const doPrint = () => {
-      try {
-        w.print();
-        logActivity('q2c', 'quote_print', { id: r.id });
-      } catch (_) {}
-    };
-    // Espera carga de imágenes/estilos
-    w.addEventListener('load', () => {
-      setTimeout(doPrint, 250);
-    });
-    // Fallback por si load no dispara (algunos navegadores)
-    setTimeout(doPrint, 1200);
+    logActivity('q2c', 'quote_open_print', { id: r.id });
   };
 
   return (
@@ -3436,7 +3464,7 @@ function ModuleQuoteToCash() {
                         <button type="button" className="crm-action-btn" onClick={() => openQuote(r)}>
                           Ver presupuesto
                         </button>
-                        <button type="button" className="crm-action-btn" onClick={() => printOrSavePdf(r)}>
+                        <button type="button" className="crm-action-btn" onClick={() => openPrintableQuote(r)}>
                           Imprimir / Guardar PDF
                         </button>
                         {r.stage !== 'paid' && (
@@ -3488,7 +3516,7 @@ function ModuleQuoteToCash() {
                       <button type="button" className="crm-action-btn" onClick={() => openQuote(r)}>
                         Presupuesto
                       </button>
-                      <button type="button" className="crm-action-btn" onClick={() => printOrSavePdf(r)}>
+                      <button type="button" className="crm-action-btn" onClick={() => openPrintableQuote(r)}>
                         Imprimir / PDF
                       </button>
                       {r.stage !== 'paid' && (
@@ -3555,11 +3583,9 @@ function ModuleQuoteToCash() {
                   type="button"
                   className="crm-action-btn"
                   onClick={() => {
-                    const w = quoteFrameRef.current?.contentWindow;
-                    if (!w) return;
-                    w.focus();
-                    w.print();
-                    logActivity('q2c', 'quote_print', { id: quoteRowId });
+                    const row = rows.find((x) => x.id === quoteRowId);
+                    if (!row) return;
+                    openPrintableQuote(row);
                   }}
                 >
                   Imprimir
@@ -3588,10 +3614,9 @@ function ModuleQuoteToCash() {
               >
                 <iframe
                   title="Vista previa presupuesto"
-                  sandbox=""
+                  sandbox="allow-same-origin allow-modals"
                   style={{ width: '100%', minHeight: 700, border: 'none' }}
                   srcDoc={quoteHtml}
-                  ref={quoteFrameRef}
                 />
               </div>
             </div>
