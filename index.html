@@ -3281,6 +3281,18 @@ function ModuleQuoteToCash() {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Presupuesto ${r.ref}</title>
+  <style>
+    @page { margin: 12mm; }
+    html, body { height: auto; }
+    body {
+      margin: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    @media print {
+      .page { padding: 0 !important; }
+    }
+  </style>
 </head>
 <body>${buildQuoteMarkup(r)}</body>
 </html>`;
@@ -3290,61 +3302,30 @@ function ModuleQuoteToCash() {
     setQuoteHtml(buildQuoteDoc(r));
   };
 
-  const downloadQuotePdf = async (r) => {
-    if (typeof window.html2pdf !== 'function') {
-      alert('No se pudo cargar html2pdf. Revisa conexión o bloqueadores.');
+  const printOrSavePdf = (r) => {
+    // Alternativa robusta: imprimir el HTML (y "Guardar como PDF" desde el navegador).
+    const html = buildQuoteDoc(r);
+    const w = window.open('', '_blank', 'noopener,noreferrer');
+    if (!w) {
+      alert('El navegador ha bloqueado la ventana emergente. Permite popups para imprimir.');
       return;
     }
-    const wrapper = document.createElement('div');
-    wrapper.style.position = 'fixed';
-    wrapper.style.left = '0';
-    wrapper.style.top = '0';
-    wrapper.style.opacity = '1';
-    wrapper.style.pointerEvents = 'none';
-    wrapper.style.zIndex = '-1';
-    wrapper.style.width = '794px'; // ~A4 px a 96dpi
-    wrapper.style.transform = 'translateX(-2000px)';
-    wrapper.innerHTML = buildQuoteMarkup(r);
-    document.body.appendChild(wrapper);
-
-    const page = wrapper.querySelector('.q2c-quote-root') || wrapper;
-    const filename = `Presupuesto_${r.ref || 'Pixelcom'}.pdf`;
-    try {
-      // Espera a que carguen imágenes (logo) antes de renderizar canvas.
-      const imgs = Array.from(page.querySelectorAll('img'));
-      await Promise.all(
-        imgs.map(
-          (img) =>
-            img.complete
-              ? Promise.resolve()
-              : new Promise((resolve) => {
-                  img.onload = resolve;
-                  img.onerror = resolve;
-                })
-        )
-      );
-
-      await window.html2pdf()
-        .set({
-          margin: 10,
-          filename,
-          image: { type: 'jpeg', quality: 0.96 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#ffffff',
-            imageTimeout: 15000
-          },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        })
-        .from(page)
-        .save();
-      logActivity('q2c', 'quote_pdf', { id: r.id });
-    } catch (e) {
-      alert(e?.message || 'Error al generar el PDF.');
-    } finally {
-      wrapper.remove();
-    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    const doPrint = () => {
+      try {
+        w.print();
+        logActivity('q2c', 'quote_print', { id: r.id });
+      } catch (_) {}
+    };
+    // Espera carga de imágenes/estilos
+    w.addEventListener('load', () => {
+      setTimeout(doPrint, 250);
+    });
+    // Fallback por si load no dispara (algunos navegadores)
+    setTimeout(doPrint, 1200);
   };
 
   return (
@@ -3455,8 +3436,8 @@ function ModuleQuoteToCash() {
                         <button type="button" className="crm-action-btn" onClick={() => openQuote(r)}>
                           Ver presupuesto
                         </button>
-                        <button type="button" className="crm-action-btn" onClick={() => downloadQuotePdf(r)}>
-                          Descargar PDF
+                        <button type="button" className="crm-action-btn" onClick={() => printOrSavePdf(r)}>
+                          Imprimir / Guardar PDF
                         </button>
                         {r.stage !== 'paid' && (
                           <button type="button" className="crm-action-btn" onClick={() => advance(r.id)}>
@@ -3507,8 +3488,8 @@ function ModuleQuoteToCash() {
                       <button type="button" className="crm-action-btn" onClick={() => openQuote(r)}>
                         Presupuesto
                       </button>
-                      <button type="button" className="crm-action-btn" onClick={() => downloadQuotePdf(r)}>
-                        PDF
+                      <button type="button" className="crm-action-btn" onClick={() => printOrSavePdf(r)}>
+                        Imprimir / PDF
                       </button>
                       {r.stage !== 'paid' && (
                         <button type="button" className="crm-action-btn" onClick={() => advance(r.id)}>
