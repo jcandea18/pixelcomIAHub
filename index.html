@@ -3067,6 +3067,7 @@ function ModuleQuoteToCash() {
   const [quoteRowId, setQuoteRowId] = useState(null);
   const [quoteHtml, setQuoteHtml] = useState('');
   const [lastMovedId, setLastMovedId] = useState(null);
+  const quoteFrameRef = React.useRef(null);
   const [form, setForm] = useState({
     empresa: '',
     contacto: '',
@@ -3565,9 +3566,23 @@ function ModuleQuoteToCash() {
                   Presupuesto (vista previa)
                 </h2>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  Puedes descargarlo en PDF desde el botón de la tabla.
+                  Puedes imprimirlo desde aquí (o “Guardar como PDF” en el diálogo de impresión).
                 </div>
               </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="crm-action-btn"
+                  onClick={() => {
+                    const w = quoteFrameRef.current?.contentWindow;
+                    if (!w) return;
+                    w.focus();
+                    w.print();
+                    logActivity('q2c', 'quote_print', { id: quoteRowId });
+                  }}
+                >
+                  Imprimir
+                </button>
               <button
                 type="button"
                 className="crm-modal-close"
@@ -3579,6 +3594,7 @@ function ModuleQuoteToCash() {
               >
                 ×
               </button>
+              </div>
             </div>
             <div className="crm-modal-body">
               <div
@@ -3594,6 +3610,7 @@ function ModuleQuoteToCash() {
                   sandbox=""
                   style={{ width: '100%', minHeight: 700, border: 'none' }}
                   srcDoc={quoteHtml}
+                  ref={quoteFrameRef}
                 />
               </div>
             </div>
